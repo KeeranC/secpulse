@@ -61,7 +61,7 @@ jobs:
           rm -rf .git
           git init -q -b data
           git add -A
-          git -c user.name="secpulse-bot" -c user.email="secpulse-bot@users.noreply.github.com" \
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -qm "data $(date -u +%FT%TZ)"
           git push -qf "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
 
