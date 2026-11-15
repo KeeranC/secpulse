@@ -20,29 +20,37 @@
     <button data-v="brief">Briefing</button><button data-v="all">Everything</button>
   </nav>
   <span class="sp"></span>
-  <input id="q" type="search" placeholder="Search  ( / )" aria-label="Search stories and CVEs" autocomplete="off">
-  <button class="icon" id="stackBtn" title="Products you work with">My stack</button>
-  <button class="icon" id="themeBtn" title="Switch light/dark" aria-label="Switch light or dark theme">◐</button>
+  <label class="search">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="M10.5 10.5 14 14" /></svg>
+    <input id="q" type="search" placeholder="Search" aria-label="Search stories and CVEs" autocomplete="off">
+    <kbd>/</kbd>
+  </label>
+  <button class="btn" id="stackBtn" title="Products you work with">My stack</button>
+  <button class="btn" id="themeBtn" data-mode="dark">
+    <svg class="i-sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.8" /><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M3.2 12.8l1.1-1.1M11.7 4.3l1.1-1.1" /></svg>
+    <svg class="i-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.4 9.6A5.6 5.6 0 0 1 6.4 2.6a5.6 5.6 0 1 0 7 7z" /></svg>
+    <span class="lbl" id="themeLbl">Light</span>
+  </button>
 </header>
 
 <main id="app" hidden>
   <p class="status" id="status">Loading…</p>
 
   <!-- Emergency: critical cases that stay until marked as handled -->
-  <section class="emergency" id="emergency" aria-label="Emergency" hidden></section>
+  <section class="card emergency" id="emergency" aria-label="Emergency" hidden></section>
 
   <!-- Briefing: one column, readable in a minute -->
   <div id="vBrief">
-    <section aria-labelledby="hA">
-      <h2 id="hA">Your products</h2>
+    <section class="card" aria-labelledby="hA">
+      <div class="sh"><h2 id="hA">Your products</h2><span class="count" id="boardCount"></span></div>
       <div id="board"></div>
     </section>
-    <section aria-labelledby="hB">
-      <h2 id="hB">Big in the industry <span class="sub">last 30 days</span></h2>
+    <section class="card" aria-labelledby="hB">
+      <div class="sh"><h2 id="hB">Big in the industry</h2><span class="sub">last 30 days</span></div>
       <div id="big"></div>
     </section>
-    <section aria-labelledby="hC">
-      <h2 id="hC">News <span class="sub" id="newsSub"></span></h2>
+    <section class="card" aria-labelledby="hC">
+      <div class="sh"><h2 id="hC">News</h2><span class="sub" id="newsSub"></span></div>
       <div id="news"></div>
     </section>
   </div>
@@ -50,22 +58,22 @@
   <!-- Everything: the full picture, same quiet rows -->
   <div id="vAll" hidden>
     <section class="pulse" id="pulse" aria-label="Trends"></section>
-    <section aria-labelledby="hV">
-      <h2 id="hV">Vulnerabilities <span class="sub" id="vulnSub"></span></h2>
+    <section class="card" aria-labelledby="hV">
+      <div class="sh"><h2 id="hV">Vulnerabilities</h2><span class="sub" id="vulnSub"></span></div>
       <nav class="chips" id="vulnChips" aria-label="Filter vulnerabilities"></nav>
       <div id="vulns"></div>
     </section>
-    <section aria-labelledby="hS">
-      <h2 id="hS">Stories <span class="sub" id="storiesSub"></span></h2>
+    <section class="card" aria-labelledby="hS">
+      <div class="sh"><h2 id="hS">Stories</h2><span class="sub" id="storiesSub"></span></div>
       <nav class="chips" id="chips" aria-label="Categories"></nav>
       <div id="stories"></div>
     </section>
-    <section aria-labelledby="hR">
-      <h2 id="hR">CVE radar <span class="sub" id="radarSub"></span></h2>
+    <section class="card" aria-labelledby="hR">
+      <div class="sh"><h2 id="hR">CVE radar</h2><span class="sub" id="radarSub"></span></div>
       <div id="radar"></div>
     </section>
-    <section aria-labelledby="hH" id="handledSec" hidden>
-      <h2 id="hH">Handled <span class="sub">stored in this browser</span></h2>
+    <section class="card" aria-labelledby="hH" id="handledSec" hidden>
+      <div class="sh"><h2 id="hH">Handled</h2><span class="sub">stored in this browser</span></div>
       <div id="handled"></div>
     </section>
   </div>
@@ -76,19 +84,34 @@
 <dialog id="stackDlg">
   <form method="dialog">
     <h3>My stack</h3>
-    <p><b>Your products</b>: what you run and are responsible for, one per line, optionally with your version. Only these get <span class="v v-act">Act</span> or <span class="v v-check">Check</span>; with a version, SecPulse also tells you whether you are affected.</p>
-    <textarea id="coreTxt" rows="7" spellcheck="false" placeholder="Fortinet FortiOS 7.4.3&#10;VMware ESXi 8.0&#10;Microsoft Exchange"></textarea>
-    <p><b>Areas</b>: fields you follow. Used only as a filter under “Everything”; they never move anything up.</p>
+
+    <h4>Products</h4>
+    <p>What you run and are responsible for, one per line, optionally with your version. Only these get <span class="v v-act">Act</span> or <span class="v v-check">Check</span>; with a version, SecPulse also tells you whether you are affected.</p>
+    <textarea id="coreTxt" rows="6" spellcheck="false" placeholder="Fortinet FortiOS 7.4.3&#10;VMware ESXi 8.0&#10;Microsoft Exchange"></textarea>
+
+    <h4>Areas</h4>
+    <p>Fields you follow. Used only as a filter under “Everything”; they never move anything up.</p>
     <div class="areas" id="areaBox"></div>
-    <div id="mutedRow" hidden><p><b>Muted</b>: hidden from the Briefing. Click to unmute.</p><div class="mutedbox" id="mutedBox"></div></div>
-    <p class="fine">Stored only in this browser, never uploaded. Phone alerts use a separate copy that you keep as the WATCHLIST_YAML secret; the button below produces it.</p>
-    <div class="row"><button type="button" class="ghost" id="yamlBtn">Copy as YAML</button><span class="sp"></span>
-      <button value="cancel" class="ghost">Cancel</button><button value="save" class="primary">Save</button></div>
+
+    <div id="mutedRow" hidden>
+      <h4>Muted</h4>
+      <p>Hidden from the Briefing. Click to unmute.</p>
+      <div class="mutedbox" id="mutedBox"></div>
+    </div>
+
+    <h4>Phone alerts and backup</h4>
+    <p class="fine">Everything here is stored only in this browser, never uploaded. Phone alerts use a separate copy that you keep as the WATCHLIST_YAML secret.</p>
+    <div class="bar">
+      <button type="button" class="btn" id="yamlBtn">Copy as YAML</button>
+      <button type="button" class="btn" id="exportBtn">Export file</button>
+      <label class="btn filebtn">Import file<input type="file" id="importFile" accept="application/json,.json" hidden></label>
+    </div>
     <textarea id="yamlOut" rows="6" readonly hidden></textarea>
-    <div class="row io"><span class="fine">Stack, handled items and mutes:</span>
-      <button type="button" class="ghost" id="exportBtn">Export file</button>
-      <label class="ghost filebtn">Import file<input type="file" id="importFile" accept="application/json,.json" hidden></label></div>
     <p class="fine" id="ioMsg" role="status"></p>
+
+    <div class="bar actions">
+      <button value="cancel" class="btn">Cancel</button><button value="save" class="btn primary">Save</button>
+    </div>
   </form>
 </dialog>
 <script src="app.js"></script>

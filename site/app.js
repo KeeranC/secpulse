@@ -52,8 +52,8 @@ const NOISE_TEASER = /^\s*submitted\s+by\s+\/u\//i;  // Reddit link posts carry 
 const CATS = { vulnerabilities: 'Vulnerabilities', breaches: 'Breaches', ransomware: 'Ransomware', 'threat-actors': 'Threat actors', research: 'Research', policy: 'Policy', tools: 'Tools' };
 const AREAS = { microsoft: 'Microsoft', 'network-edge': 'Network / firewall / VPN', 'linux-oss-web': 'Linux / open source / web', 'cloud-virt': 'Cloud / virtualisation', identity: 'Identity / PAM', devops: 'DevOps / source control', endpoint: 'Browsers / endpoints', 'enterprise-apps': 'Enterprise applications' };
 const VERDICT = {
-  act: ['Act', 'Your product, and exploited, with a public exploit, or critical. Patch or mitigate now.'],
-  check: ['Check', 'Your product. Check whether your version and setup are affected.'],
+  act: ['Act', 'Your product: exploited, public exploit or critical. Patch or mitigate now.'],
+  check: ['Check', 'Your product: verify whether your version and setup are affected.'],
 };
 const HANDLED = { patched: 'Patched', na: 'Not affected', accepted: 'Risk accepted' };
 const EMERGENCY_CVSS = 9.0;
@@ -139,7 +139,17 @@ function tagAll() {
   for (const m of S.majors) tag(m, [m.product], m.product, false, m);
 }
 const verdictBadge = x => x._verdict ? h('span', { class: 'v v-' + x._verdict, title: VERDICT[x._verdict][1] }, VERDICT[x._verdict][0]) : null;
-const exploited = (kev, ransomware) => kev ? h('span', { class: 'x' }, ransomware ? 'exploited · ransomware' : 'exploited') : null;
+const exploited = (kev, ransomware) => kev ? h('span', { class: 'v v-x', title: 'Used in real attacks (CISA KEV)' + (ransomware ? ', also by ransomware' : '') }, 'Exploited') : null;
+const notYours = () => h('span', { class: 'v v-none', title: 'Not one of your products' }, 'Not yours');
+/* Small inline icons, built as DOM (no innerHTML, no external files). */
+function icon(d, cls) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('class', 'ic ' + (cls || ''));
+  const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); svg.append(p);
+  return svg;
+}
+const ICON_WARN = 'M8 1.8 15 14H1L8 1.8zM8 6.4v3.6M8 12v.4';
 
 /* "Is my version affected?" in one phrase, or nothing when no version is set. */
 function versionNote(x) {
@@ -165,13 +175,22 @@ function toggleMute(name) {
 }
 
 /* ---------- rows: one line, details on click ---------- */
-function row({ cls = '', id, lead, badge, main, meta, body }) {
-  // Lists with a product column keep the badge in a fixed slot so the text lines up.
-  const slot = lead ? h('span', { class: 'slot' }, badge) : badge;
-  const sum = [lead && h('span', { class: 'lead' }, lead), slot, h('span', { class: 'main' }, main), meta && h('span', { class: 'meta' }, meta)];
+/* A row is a small table line: title + one quiet line on the left, then fixed columns on the
+   right (status, CVSS score, date) so that everything lines up down the list. */
+function scoreEl(v) {
+  if (v === undefined) return null;
+  if (v == null) return h('span', { class: 'score s-na' });   // keeps the column, shows nothing
+  const n = Number(v);
+  return h('span', { class: 'score ' + (n >= 9 ? 's-crit' : n >= 7 ? 's-high' : 's-med'), title: 'CVSS severity score, 0 to 10' }, h('i', null, 'CVSS'), n.toFixed(1));
+}
+function row({ cls = '', id, lead, badge, main, score, meta, body }) {
+  const text = lead
+    ? h('div', { class: 'rt' }, h('div', { class: 't' }, lead), main && h('div', { class: 's' }, main))
+    : h('div', { class: 'rt' }, h('div', { class: 't' }, main));
+  const sum = [text, h('span', { class: 'slot' }, badge), scoreEl(score), meta && h('span', { class: 'meta' }, meta)];
   const kids = (body || []).filter(Boolean);
   if (!kids.length) return h('div', { class: 'row flat ' + cls, id }, sum);
-  return h('details', { class: 'row ' + cls, id }, h('summary', null, sum), h('div', { class: 'body' }, kids));
+  return h('details', { class: 'row ' + cls, id }, h('summary', null, sum, h('span', { class: 'chev', 'aria-hidden': 'true' })), h('div', { class: 'body' }, kids));
 }
 const facts = (...bits) => { const t = bits.filter(Boolean).join(' · '); return t ? h('p', { class: 'facts' }, t) : null; };
 const linkList = (label, links) => links.length ? h('p', { class: 'links' }, label, ' ', links.flatMap((l, i) => i ? [' · ', l] : [l])) : null;
@@ -191,8 +210,8 @@ function timeline(x) {
 const whenLine = x => x.kev && x.kev_date ? `exploited since ${day(x.kev_date)}` : x.published ? `published ${day(x.published)}` : '';
 function handleButtons(key) {
   const note = h('input', { type: 'text', class: 'note', placeholder: 'Note (optional)', 'aria-label': 'Note' });
-  return h('div', { class: 'handle' }, 'Mark as ',
-    Object.entries(HANDLED).map(([s, label]) => h('button', { type: 'button', on: { click: () => setHandled(key, s, note.value.trim()) } }, label)), note);
+  return h('div', { class: 'handle' }, h('span', { class: 'hl' }, 'Mark as'),
+    h('span', { class: 'group' }, Object.entries(HANDLED).map(([s, label]) => h('button', { type: 'button', on: { click: () => setHandled(key, s, note.value.trim()) } }, label))), note);
 }
 function muteButton(name) {
   return name && !S.core.some(c => c.names.has(name))
@@ -212,6 +231,12 @@ function exploitedCritical(m) {
   if (!kev.length) return m.cvss != null && m.cvss >= EMERGENCY_CVSS;
   return kev.some(crit);
 }
+/* Highest score among the CVEs of an event that are actually exploited. */
+function kevScore(m) {
+  const byId = S._cveById || (S._cveById = new Map(S.cves.map(c => [c.id, c])));
+  const v = m.cves.map(id => byId.get(id)).filter(c => c && c.kev && c.cvss != null).map(c => c.cvss);
+  return v.length ? Math.max(...v) : null;
+}
 function emergencies() {
   // Your products: anything critical, unless your version is out of range or you handled it.
   const mine = S.cves.filter(c => c._core && (c.cvss || 0) >= EMERGENCY_CVSS && recent(c, 30) && c._aff !== 'no' && !isHandled(c.id))
@@ -229,12 +254,15 @@ function renderEmergency() {
   box.hidden = !mine.length && !big.length;
   box.replaceChildren();
   if (box.hidden) return;
-  box.append(h('h2', null, 'Emergency', h('span', { class: 'sub' }, 'critical, stays here until you mark it')));
+  box.append(h('div', { class: 'sh' }, icon(ICON_WARN), h('h2', null, 'Emergency'),
+    h('span', { class: 'sub' }, 'critical, stays here until you mark it'),
+    h('span', { class: 'count' }, `${mine.length + big.length} open`)));
   for (const c of mine) {
     box.append(row({
       cls: 'em mine', id: 'em-' + c.id,
       lead: c._core, badge: h('span', { class: 'v v-act' }, 'Act'),
-      main: [c.id, cvssTxt(c.cvss), c.kev ? `exploited since ${day(c.kev_date)}` : `published ${day(c.published)}`, cap(how(c.kind, c.path))].filter(Boolean).join(' · '),
+      main: [c.id, cap(how(c.kind, c.path))].filter(Boolean).join(' · '),
+      score: c.cvss ?? null, meta: c.kev ? `exploited ${day(c.kev_date)}` : `published ${day(c.published)}`,
       body: [
         h('p', null, c.why || c.title || c.desc || ''),
         facts(versionNote(c), safeUrl(c.fix) ? 'fix available' : 'no fix listed yet', c.poc && 'public exploit'),
@@ -247,8 +275,9 @@ function renderEmergency() {
   for (const m of big) {
     box.append(row({
       cls: 'em other', id: 'em-' + majorKey(m),
-      lead: short(m.product), badge: h('span', { class: 'x' }, 'not yours'),
-      main: [m.headline, `exploited since ${day(m.kev_date)}`, how(m.kind, m.path)].filter(Boolean).join(' · '),
+      lead: short(m.product), badge: notYours(),
+      main: [m.headline, how(m.kind, m.path)].filter(Boolean).join(' · '),
+      score: kevScore(m), meta: `exploited ${day(m.kev_date)}`,
       body: [
         facts(m.n_cves && plural(m.n_cves, 'CVE'), m.news && `covered by ${plural(m.news, 'outlet')}`, m.ransomware && 'used by ransomware'),
         timeline(m),
@@ -265,9 +294,11 @@ function renderEmergency() {
 function renderBoard() {
   const box = $('#board');
   box.replaceChildren();
+  $('#boardCount').textContent = '';
   if (!S.core.length) {
-    box.append(h('p', { class: 'hint' }, 'Tell SecPulse which products you run, ideally with the version (“Fortinet FortiOS 7.4.3”). They appear here with a clear Act or Check, and nothing else gets that label. ',
-      h('button', { class: 'link', on: { click: openStack } }, 'Set my stack')));
+    box.append(h('div', { class: 'blank' },
+      h('p', null, 'Tell SecPulse which products you run, ideally with the version (“Fortinet FortiOS 7.4.3”). They appear here with a clear Act or Check, and nothing else gets that label.'),
+      h('button', { class: 'btn primary', on: { click: openStack } }, 'Set my stack')));
     return;
   }
   const quiet = [];
@@ -299,6 +330,7 @@ function renderBoard() {
       cls: 'prod',
       lead: c.term + (c.version ? ' ' + c.version : ''), badge: verdict ? h('span', { class: 'v v-' + verdict, title: VERDICT[verdict][1] }, VERDICT[verdict][0]) : null,
       main: parts.join(' · '),
+      score: open.length ? (Math.max(...open.map(x => x.cvss ?? 0)) || null) : null,
       body: [
         ...open.slice(0, 8).map(x => h('div', { class: 'item' },
           h('a', { href: '#' + x.id }, x.id), ' ', exploited(x.kev, x.ransomware),
@@ -315,8 +347,10 @@ function renderBoard() {
     }) });
   }
   rows.sort((a, b) => a.rank - b.rank);
+  const nAct = rows.filter(r => r.rank === 0).length, nCheck = rows.filter(r => r.rank === 1).length;
+  $('#boardCount').textContent = nAct ? `${nAct} need action` : nCheck ? `${nCheck} to check` : 'nothing open';
   box.append(...rows.map(r => r.el));
-  if (quiet.length) box.append(h('div', { class: 'row flat quiet' }, h('span', { class: 'main' }, quiet.join(' · ')), h('span', { class: 'meta' }, 'nothing open')));
+  if (quiet.length) box.append(h('div', { class: 'row flat quiet' }, h('div', { class: 'rt' }, h('div', { class: 's' }, quiet.join(' · '))), h('span', { class: 'meta' }, 'nothing open')));
 }
 
 /* ---------- B. big in the industry ---------- */
@@ -325,11 +359,12 @@ function majorRow(m) {
     cls: 'major',
     lead: short(m.product), badge: verdictBadge(m) || exploited(m.kev, m.ransomware),
     main: [m.headline || m.what || m.text, how(m.kind, m.path)].filter(Boolean).join(' · '),
+    score: m.cvss ?? null,
     meta: m.kev && m.kev_date ? 'exploited ' + day(m.kev_date) : m.published ? day(m.published) : '',
     body: [
       m.what && m.text && m.text !== m.what && h('p', null, m.text),
       facts(m.n_cves && plural(m.n_cves, 'CVE'), m.cvss && 'worst ' + cvssTxt(m.cvss),
-        m.poc && 'public exploit', m.news && `covered by ${plural(m.news, 'outlet')}`),
+        m.poc && 'public exploit', m.ransomware && 'used by ransomware', m.news && `covered by ${plural(m.news, 'outlet')}`),
       timeline(m),
       linkList('CVEs:', cveLinks(m.cves)),
       linkList('Read:', [safeUrl(m.fix) && ext(m.fix, 'Fix / advisory ↗'), ...m.stories.map(s => ext(s.url, s.source + ' ↗'))].filter(Boolean)),
@@ -397,9 +432,9 @@ function renderHandled() {
   $('#handled').replaceChildren(...keys.map(k => {
     const x = S.handled[k];
     return h('div', { class: 'row flat' },
-      h('span', { class: 'lead' }, k.replace(/^m:/, '')),
-      h('span', { class: 'main' }, `${HANDLED[x.s] || x.s} on ${day(x.at)}` + (x.note ? ` · ${x.note}` : '')),
-      h('button', { type: 'button', class: 'link quiet', on: { click: () => setHandled(k, null) } }, 'Undo'));
+      h('div', { class: 'rt' }, h('div', { class: 't' }, k.replace(/^m:/, '')),
+        h('div', { class: 's' }, `${HANDLED[x.s] || x.s} on ${day(x.at)}` + (x.note ? ` · ${x.note}` : ''))),
+      h('button', { type: 'button', class: 'btn small', on: { click: () => setHandled(k, null) } }, 'Undo'));
   }));
 }
 function renderVulns() {
@@ -438,6 +473,7 @@ function cveRow(c) {
     cls: 'cve' + (c._aff === 'no' || isHandled(c.id) ? ' done' : ''), id: c.id,
     lead: c.id, badge: verdictBadge(c) || exploited(c.kev, c.ransomware),
     main: [prod, (c.prod && S.what[c.prod]) || '', how(c.kind, c.path)].filter(Boolean).join(' · '),
+    score: c.cvss ?? null,
     meta: c.kev && c.kev_date ? 'exploited ' + day(c.kev_date) : day(c.published),
     body: [
       h('p', null, c.why || c.title || c.desc || ''),
@@ -491,21 +527,42 @@ function renderPulse() {
 function renderChrome() {
   const m = S.meta, feeds = m.feeds || {};
   const bad = Object.entries(feeds).filter(([, v]) => typeof v !== 'number').map(([k]) => k);
-  $('#status').replaceChildren('Updated ', h('b', null, ago(m.generated) + ' ago'),
-    ` (${day(m.generated)}) · ${Object.keys(feeds).length - bad.length} sources`);
+  const stale = hoursSince(m.generated) > 2 || bad.length > 0;
+  $('#status').replaceChildren(
+    h('span', { class: 'dot ' + (stale ? 'warn' : 'ok'), title: stale ? 'Data is older than two hours, or a source failed' : 'Up to date' }),
+    'Updated ', h('b', null, ago(m.generated) + ' ago'),
+    ` · ${Object.keys(feeds).length - bad.length} sources`);
   for (const b of document.querySelectorAll('#tabs button')) b.setAttribute('aria-pressed', String(b.dataset.v === S.view));
   $('#vBrief').hidden = S.view !== 'brief';
   $('#vAll').hidden = S.view !== 'all';
   const n = S.stack.core.length;
   $('#stackBtn').textContent = n ? `My stack (${n})` : 'My stack';
+  const dl = (cls, pairs) => h('dl', { class: cls }, pairs.map(([k, v]) => [h('dt', null, k), h('dd', null, v)]));
+  const badge = (cls, text) => h('span', { class: 'v ' + cls }, text);
+  const when = Date.parse(m.generated) ? `${day(m.generated)}, ${new Date(m.generated).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : '';
   $('#foot').replaceChildren(
-    h('span', null, h('span', { class: 'v v-act' }, 'Act'), ' ', VERDICT.act[1], ' ', h('span', { class: 'v v-check' }, 'Check'), ' ', VERDICT.check[1]),
-    h('br'),
-    h('span', null, `Emergency: your product with CVSS ≥ ${EMERGENCY_CVSS}, or a widely deployed product that is critical, exploited and widely reported. Version checks use NVD's affected ranges; new CVEs often have none for days.`),
-    h('br'),
-    h('span', null, 'Keys: ', h('kbd', null, 'j'), ' ', h('kbd', null, 'k'), ' move · ', h('kbd', null, 'Enter'), ' details · ', h('kbd', null, 'o'), ' open · ', h('kbd', null, '/'), ' search'),
-    h('span', null, ' · Data: CVE.org, NVD, CISA KEV, FIRST EPSS, GitHub advisories, vendor feeds and the listed news sources. Rule-based; confirm against the vendor advisory before acting.'),
-    bad.length ? h('span', { class: 'bad' }, ` · Unreachable this run: ${bad.join(', ')}`) : '');
+    h('div', { class: 'fcols' },
+      h('div', null, h('h3', null, 'Legend'), dl('legend', [
+        [badge('v-act', 'Act'), VERDICT.act[1]],
+        [badge('v-check', 'Check'), VERDICT.check[1]],
+        [badge('v-x', 'Exploited'), 'Used in real attacks, confirmed by CISA.'],
+        [badge('v-none', 'Not yours'), 'Widely deployed product outside your stack. Check whether you run it anywhere.'],
+        [h('span', { class: 'score s-crit' }, h('i', null, 'CVSS'), '9.8'), 'Severity score, 0 to 10. Red from 9.0, amber from 7.0.'],
+      ])),
+      h('div', null, h('h3', null, 'How it works'),
+        h('p', null, `Emergency lists your products with CVSS ≥ ${EMERGENCY_CVSS.toFixed(1)}, and widely deployed products that are critical and exploited.`),
+        h('p', null, 'Version checks use NVD’s affected ranges. New CVEs often have none for days; until then they count as affected.'),
+        h('p', null, 'Your stack, handled items and mutes stay in this browser.')),
+      h('div', { class: 'keys' }, h('h3', null, 'Keyboard'), dl('kb', [
+        [[h('kbd', null, 'j'), ' ', h('kbd', null, 'k')], 'Move'],
+        [h('kbd', null, 'Enter'), 'Details'],
+        [h('kbd', null, 'o'), 'Open source'],
+        [h('kbd', null, '/'), 'Search'],
+      ]))),
+    bad.length ? h('p', { class: 'bad' }, `Unreachable this run: ${bad.join(', ')}`) : '',
+    h('div', { class: 'fbase' },
+      h('span', null, h('b', null, 'SecPulse'), ' · Sources: CVE.org, NVD, CISA KEV, FIRST EPSS, GitHub advisories and security news feeds. Rule-based; confirm against the vendor advisory before acting.'),
+      when ? h('span', { class: 'when' }, 'Updated ' + when) : ''));
 }
 function render() {
   renderChrome();
@@ -544,7 +601,7 @@ function readDialog() {
 function renderMutedList() {
   const box = $('#mutedBox');
   box.replaceChildren(...[...S.muted].sort().map(name =>
-    h('button', { type: 'button', class: 'chipx', title: 'Unmute', on: { click: () => { toggleMute(name); renderMutedList(); } } }, short(name) + ' ✕')));
+    h('button', { type: 'button', class: 'btn small', title: 'Unmute', on: { click: () => { toggleMute(name); renderMutedList(); } } }, short(name) + ' ✕')));
   $('#mutedRow').hidden = !S.muted.size;
 }
 function openStack() {
@@ -593,11 +650,22 @@ function wire() {
       render();
     }, 160);
   });
+  // The button names the theme you switch TO: sun + "Light" while dark, moon + "Dark" while light.
+  const sysLight = matchMedia('(prefers-color-scheme: light)');
+  const themeNow = () => document.documentElement.dataset.theme || (sysLight.matches ? 'light' : 'dark');
+  const showTheme = () => {
+    const now = themeNow(), b = $('#themeBtn');
+    b.dataset.mode = now;
+    $('#themeLbl').textContent = now === 'dark' ? 'Light' : 'Dark';
+    b.title = b.ariaLabel = now === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+  };
   $('#themeBtn').addEventListener('click', () => {
-    const now = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-    const next = now === 'dark' ? 'light' : 'dark';
+    const next = themeNow() === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next; store.set('theme', next);
+    showTheme();
   });
+  sysLight.addEventListener('change', showTheme);
+  showTheme();
   const dlg = $('#stackDlg');
   $('#stackBtn').addEventListener('click', openStack);
   $('#yamlBtn').addEventListener('click', async () => {
@@ -656,7 +724,7 @@ async function load(attempt = 0) {
         : e instanceof SyntaxError
           ? 'The data is being rewritten right now (collector run in progress). Retrying…'
           : 'Cannot reach the server that serves the portal. Is it running? Retrying…',
-      ' ', h('button', { class: 'link', on: { click: () => location.reload() } }, 'Reload now'));
+      h('br'), h('button', { class: 'btn', on: { click: () => location.reload() } }, 'Reload now'));
     if (e.status !== 404 && attempt < 60) {
       await new Promise(r => setTimeout(r, Math.min(15000, 2000 * (attempt + 1))));
       return load(attempt + 1);

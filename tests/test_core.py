@@ -421,3 +421,16 @@ def test_nvd_outage_keeps_the_window_for_the_next_run(monkeypatch):
     assert "nvd_since" not in state and calls == [False]   # full backfill tried, watermark not moved
     main.collect_cves({}, {}, {}, state, cfg, NOW, first_run=False)
     assert state["nvd_since"] and calls == [False, False]  # retried in full, now recorded
+
+
+def test_site_assets_are_stamped_so_caches_cannot_mix(tmp_path):
+    from collector.build import copy_site
+    copy_site(ROOT / "site", tmp_path)
+    html = (tmp_path / "index.html").read_text(encoding="utf-8")
+    import re
+    css, js = re.search(r'href="style\.css\?v=(\w{10})"', html), re.search(r'src="app\.js\?v=(\w{10})"', html)
+    assert css and js
+    (tmp_path / "style.css").write_text("body{}", encoding="utf-8")       # a changed file gets a new stamp
+    (ROOT / "site")  # source stays untouched
+    src = (ROOT / "site" / "index.html").read_text(encoding="utf-8")
+    assert "?v=" not in src
