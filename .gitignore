@@ -1,0 +1,13 @@
+# Collected data and state live on the separate `data` branch, never on main
+data/
+public/
+
+# Private: your real watchlist and any local secrets
+config/watchlist.yaml
+.env
+
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+

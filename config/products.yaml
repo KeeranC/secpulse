@@ -1,0 +1,145 @@
+# Catalogue of widely deployed products. Public information only.
+#   name:    display name
+#   area:    microsoft | network-edge | linux-oss-web | cloud-virt | identity | devops | endpoint | enterprise-apps
+#   what:    one sentence for readers who do not know the product
+#   aliases: extra phrases that identify it in headlines (the name itself always counts)
+#   cpe:     "vendor" or "vendor:product" as used in CVE data
+# A product in this list counts as "broad impact". Anything not listed is treated as niche.
+# Add your own products freely.
+
+products:
+  # ---------------- microsoft
+  - {name: Windows, area: microsoft, what: "Microsoft's desktop and server operating system", aliases: [Windows Server, Windows 11, Windows 10, Windows kernel, Win32k, CLFS], cpe: ["microsoft:windows_10", "microsoft:windows_11", "microsoft:windows_server", "microsoft:windows_server_2019", "microsoft:windows_server_2022", "microsoft:windows_server_2025", "microsoft:windows"]}
+  - {name: Active Directory, area: microsoft, what: "Microsoft's on-premises identity and domain service", aliases: [AD DS, Kerberos, NTLM, AD CS, Active Directory Certificate Services], cpe: []}
+  - {name: Microsoft Exchange, area: microsoft, what: "Microsoft's on-premises mail server", aliases: [Exchange Server, Exchange Online], cpe: ["microsoft:exchange_server"]}
+  - {name: Microsoft SharePoint, area: microsoft, what: "Microsoft's document and intranet platform", aliases: [SharePoint], cpe: ["microsoft:sharepoint_server", "microsoft:sharepoint_enterprise_server"]}
+  - {name: Microsoft Office, area: microsoft, what: "Word, Excel, Outlook and the rest of the Office suite", aliases: [Outlook, Microsoft Word, Microsoft Excel, Microsoft 365 Apps], cpe: ["microsoft:office", "microsoft:365_apps", "microsoft:outlook", "microsoft:word", "microsoft:excel"]}
+  - {name: Microsoft 365, area: microsoft, what: "Microsoft's cloud productivity tenant: mail, Teams, OneDrive", aliases: [M365, Office 365, Microsoft Teams, OneDrive], cpe: ["microsoft:teams"]}
+  - {name: Entra ID, area: microsoft, what: "Microsoft's cloud identity provider, formerly Azure AD", aliases: [Azure AD, Azure Active Directory, Microsoft Entra], cpe: ["microsoft:entra_id", "microsoft:azure_active_directory"]}
+  - {name: Azure, area: microsoft, what: "Microsoft's public cloud", aliases: [Microsoft Azure], cpe: ["microsoft:azure"]}
+  - {name: Microsoft SQL Server, area: microsoft, what: "Microsoft's relational database", aliases: [SQL Server, MSSQL], cpe: ["microsoft:sql_server"]}
+  - {name: Microsoft Defender, area: microsoft, what: "Microsoft's endpoint protection", aliases: [Defender for Endpoint, Windows Defender], cpe: ["microsoft:defender_for_endpoint", "microsoft:windows_defender"]}
+  - {name: Hyper-V, area: microsoft, what: "Microsoft's hypervisor", aliases: [], cpe: ["microsoft:hyper-v"]}
+  - {name: Microsoft Edge, area: microsoft, what: "Microsoft's Chromium-based browser", aliases: [], cpe: ["microsoft:edge", "microsoft:edge_chromium"]}
+  - {name: Microsoft (other), area: microsoft, what: "Another Microsoft product", aliases: [Microsoft], cpe: ["microsoft"]}
+
+  # ---------------- network edge: firewalls, VPN, remote access
+  - {name: Fortinet FortiOS / FortiGate, area: network-edge, what: "Fortinet's firewall and SSL-VPN platform", aliases: [FortiOS, FortiGate, FortiProxy], cpe: ["fortinet:fortios", "fortinet:fortiproxy"]}
+  - {name: Fortinet (other), area: network-edge, what: "Another Fortinet appliance such as FortiWeb, FortiManager or FortiMail", aliases: [Fortinet, FortiWeb, FortiManager, FortiAnalyzer, FortiMail, FortiClient, FortiSIEM, FortiSwitch, FortiNAC, FortiVoice], cpe: ["fortinet"]}
+  - {name: Palo Alto PAN-OS, area: network-edge, what: "Palo Alto Networks firewall operating system and GlobalProtect VPN", aliases: [PAN-OS, GlobalProtect, Palo Alto Networks firewall], cpe: ["paloaltonetworks:pan-os", "paloaltonetworks"]}
+  - {name: Cisco IOS / IOS XE, area: network-edge, what: "Operating system of Cisco routers and switches", aliases: [IOS XE, Cisco IOS, IOS XR, NX-OS], cpe: ["cisco:ios_xe", "cisco:ios", "cisco:ios_xr", "cisco:nx-os"]}
+  - {name: Cisco ASA / Firepower, area: network-edge, what: "Cisco's firewall and VPN appliances", aliases: [Cisco ASA, Firepower, Secure Firewall, AnyConnect, Cisco Secure Client], cpe: ["cisco:adaptive_security_appliance_software", "cisco:firepower_threat_defense", "cisco:secure_firewall_management_center"]}
+  - {name: Cisco (other), area: network-edge, what: "Another Cisco product such as ISE, Unified CM or Webex", aliases: [Cisco, Cisco ISE, Identity Services Engine, Cisco Unified, Webex, Cisco SD-WAN, Cisco Meraki], cpe: ["cisco"]}
+  - {name: SonicWall, area: network-edge, what: "SonicWall firewalls and SSL-VPN / SMA remote-access appliances", aliases: [SonicOS, SonicWall SMA, SonicWall SSLVPN, SonicWall SSL VPN], cpe: ["sonicwall"]}
+  - {name: Citrix NetScaler, area: network-edge, what: "Citrix's application delivery controller and remote-access gateway", aliases: [NetScaler, Citrix ADC, Citrix Gateway, CitrixBleed], cpe: ["citrix:netscaler_application_delivery_controller", "citrix:netscaler_gateway", "citrix"]}
+  - {name: Ivanti Connect Secure, area: network-edge, what: "Ivanti's SSL-VPN, formerly Pulse Secure", aliases: [Ivanti, Pulse Secure, Ivanti EPMM, Ivanti Endpoint Manager, Policy Secure], cpe: ["ivanti"]}
+  - {name: Check Point, area: network-edge, what: "Check Point firewalls and VPN gateways", aliases: [Check Point Quantum, Check Point Security Gateway], cpe: ["checkpoint"]}
+  - {name: Juniper Junos, area: network-edge, what: "Operating system of Juniper routers, switches and SRX firewalls", aliases: [Junos OS, Juniper SRX, Juniper Networks], cpe: ["juniper"]}
+  - {name: F5 BIG-IP, area: network-edge, what: "F5's load balancer and application gateway", aliases: [BIG-IP, F5 Networks], cpe: ["f5"]}
+  - {name: Sophos Firewall, area: network-edge, what: "Sophos XG / XGS firewalls", aliases: [Sophos XG, Sophos XGS], cpe: ["sophos:firewall", "sophos:sfos"]}
+  - {name: WatchGuard Firebox, area: network-edge, what: "WatchGuard firewalls", aliases: [WatchGuard, Fireware], cpe: ["watchguard"]}
+  - {name: Zyxel, area: network-edge, what: "Zyxel firewalls and network devices", aliases: [], cpe: ["zyxel"]}
+  - {name: Barracuda, area: network-edge, what: "Barracuda email security gateways and firewalls", aliases: [Barracuda ESG, Barracuda Email Security Gateway], cpe: ["barracuda"]}
+  - {name: OPNsense, area: network-edge, what: "Open-source firewall and router distribution based on FreeBSD", aliases: [], cpe: ["opnsense", "deciso"]}
+  - {name: pfSense, area: network-edge, what: "Open-source firewall distribution based on FreeBSD", aliases: [], cpe: ["netgate:pfsense", "pfsense"]}
+  - {name: NetBird, area: network-edge, what: "Open-source WireGuard-based mesh VPN and zero-trust network", aliases: [], cpe: ["netbird"]}
+  - {name: WireGuard, area: network-edge, what: "Modern VPN protocol and implementation", aliases: [], cpe: ["wireguard"]}
+  - {name: OpenVPN, area: network-edge, what: "Open-source VPN", aliases: [], cpe: ["openvpn"]}
+  - {name: Tailscale, area: network-edge, what: "WireGuard-based mesh VPN service", aliases: [], cpe: ["tailscale"]}
+  - {name: MikroTik RouterOS, area: network-edge, what: "MikroTik router operating system", aliases: [MikroTik, RouterOS], cpe: ["mikrotik"]}
+  - {name: Ubiquiti UniFi, area: network-edge, what: "Ubiquiti network equipment and controller", aliases: [UniFi, Ubiquiti], cpe: ["ui", "ubiquiti"]}
+  - {name: Aruba / HPE networking, area: network-edge, what: "HPE Aruba switches, access points and ClearPass", aliases: [ArubaOS, ClearPass, HPE Aruba], cpe: ["arubanetworks"]}
+
+  # ---------------- linux, open source, web
+  - {name: Linux kernel, area: linux-oss-web, what: "The kernel of every Linux server, appliance, container host and Android device", aliases: [Linux kernel, kernel TCP, netfilter, io_uring, eBPF], cpe: ["linux:linux_kernel"]}
+  - {name: OpenSSH, area: linux-oss-web, what: "The standard SSH server and client", aliases: [sshd, regreSSHion], cpe: ["openbsd:openssh", "openssh"]}
+  - {name: OpenSSL, area: linux-oss-web, what: "The most widely used TLS and crypto library", aliases: [], cpe: ["openssl"]}
+  - {name: glibc, area: linux-oss-web, what: "The GNU C library used by nearly every Linux program", aliases: [GNU C Library], cpe: ["gnu:glibc"]}
+  - {name: sudo, area: linux-oss-web, what: "Privilege elevation tool on Linux and Unix", aliases: [], cpe: ["sudo_project:sudo", "todd_miller:sudo"]}
+  - {name: systemd, area: linux-oss-web, what: "Init and service manager of most Linux distributions", aliases: [], cpe: ["systemd_project:systemd"]}
+  - {name: PHP (language runtime), area: linux-oss-web, what: "Server-side language behind a large share of websites (the runtime itself, not PHP applications)", aliases: [PHP core, PHP-CGI, PHP-FPM, PHP Group, PHP interpreter], cpe: ["php:php", "php_group:php"]}
+  - {name: Apache HTTP Server, area: linux-oss-web, what: "One of the two dominant web servers", aliases: [Apache httpd, Apache HTTP/2, Apache web server], cpe: ["apache:http_server"]}
+  - {name: nginx, area: linux-oss-web, what: "One of the two dominant web servers and reverse proxies", aliases: [], cpe: ["f5:nginx", "nginx"]}
+  - {name: Apache Tomcat, area: linux-oss-web, what: "Java application server", aliases: [Tomcat], cpe: ["apache:tomcat"]}
+  - {name: Apache Struts, area: linux-oss-web, what: "Java web framework", aliases: [Struts], cpe: ["apache:struts"]}
+  - {name: Log4j, area: linux-oss-web, what: "Java logging library embedded in countless products", aliases: [Log4Shell], cpe: ["apache:log4j"]}
+  - {name: Spring Framework, area: linux-oss-web, what: "The dominant Java application framework", aliases: [Spring Boot, Spring4Shell], cpe: ["vmware:spring_framework", "vmware:spring_boot", "pivotal_software:spring_framework"]}
+  - {name: Node.js, area: linux-oss-web, what: "JavaScript server runtime", aliases: [], cpe: ["nodejs:node.js"]}
+  - {name: Python (interpreter), area: linux-oss-web, what: "The Python interpreter", aliases: [CPython], cpe: ["python:python"]}
+  - {name: OpenJDK / Java, area: linux-oss-web, what: "The Java runtime", aliases: [Java SE, OpenJDK], cpe: ["oracle:jdk", "oracle:openjdk", "oracle:java_se"]}
+  - {name: WordPress core, area: linux-oss-web, what: "The most widely used website CMS (core, not plugins)", aliases: [WordPress core], cpe: ["wordpress:wordpress"]}
+  - {name: Drupal (core), area: linux-oss-web, what: "Website CMS (core, not contributed modules)", aliases: [Drupal core], cpe: ["drupal:drupal"]}
+  - {name: MySQL / MariaDB, area: linux-oss-web, what: "Open-source relational databases", aliases: [MySQL, MariaDB], cpe: ["oracle:mysql", "mariadb"]}
+  - {name: PostgreSQL, area: linux-oss-web, what: "Open-source relational database", aliases: [Postgres], cpe: ["postgresql"]}
+  - {name: Redis, area: linux-oss-web, what: "In-memory data store and cache", aliases: [Valkey], cpe: ["redis"]}
+  - {name: MongoDB, area: linux-oss-web, what: "Document database", aliases: [], cpe: ["mongodb"]}
+  - {name: Elasticsearch / Kibana, area: linux-oss-web, what: "Search and log analytics stack", aliases: [Elasticsearch, Kibana], cpe: ["elastic"]}
+  - {name: curl, area: linux-oss-web, what: "HTTP client library embedded almost everywhere", aliases: [libcurl], cpe: ["haxx:curl", "haxx:libcurl"]}
+  - {name: Brotli, area: linux-oss-web, what: "Compression library used by browsers, web servers and language runtimes", aliases: [], cpe: ["google:brotli"]}
+  - {name: Samba, area: linux-oss-web, what: "SMB file sharing and AD compatibility on Linux", aliases: [], cpe: ["samba"]}
+  - {name: BIND (DNS server), area: linux-oss-web, what: "The reference DNS server", aliases: [BIND 9, ISC BIND], cpe: ["isc:bind"]}
+  - {name: Exim / Postfix, area: linux-oss-web, what: "Open-source mail transfer agents", aliases: [Exim, Postfix], cpe: ["exim", "postfix"]}
+  - {name: CUPS, area: linux-oss-web, what: "Printing system on Linux and macOS", aliases: [], cpe: ["openprinting:cups"]}
+  - {name: Red Hat Enterprise Linux, area: linux-oss-web, what: "Red Hat's enterprise Linux distribution", aliases: [RHEL], cpe: ["redhat:enterprise_linux"]}
+  - {name: Ubuntu / Debian, area: linux-oss-web, what: "The most common Linux server distributions", aliases: [Ubuntu, Debian], cpe: ["canonical:ubuntu_linux", "debian:debian_linux"]}
+  - {name: FreeBSD, area: linux-oss-web, what: "BSD operating system, base of OPNsense and pfSense", aliases: [], cpe: ["freebsd"]}
+
+  # ---------------- cloud and virtualisation
+  - {name: VMware ESXi / vCenter, area: cloud-virt, what: "Broadcom VMware's hypervisor and its management server", aliases: [ESXi, vCenter, vSphere, VMware Workstation, VMware Tools, VMware Aria, VMware], cpe: ["vmware:esxi", "vmware:vcenter_server", "vmware", "broadcom"]}
+  - {name: Proxmox VE, area: cloud-virt, what: "Open-source virtualisation platform (KVM and LXC) with Backup Server and Mail Gateway", aliases: [Proxmox, Proxmox Backup Server, Proxmox Mail Gateway, PVE], cpe: ["proxmox"]}
+  - {name: QEMU / KVM, area: cloud-virt, what: "Open-source hypervisor stack used by Proxmox and most clouds", aliases: [QEMU, KVM hypervisor], cpe: ["qemu"]}
+  - {name: Xen / Citrix Hypervisor, area: cloud-virt, what: "Xen-based hypervisors", aliases: [XenServer, Xen hypervisor, XCP-ng], cpe: ["xen", "citrix:hypervisor"]}
+  - {name: Kubernetes, area: cloud-virt, what: "Container orchestration platform", aliases: [kubelet, ingress-nginx, K8s], cpe: ["kubernetes"]}
+  - {name: Docker, area: cloud-virt, what: "Container runtime and tooling", aliases: [Docker Engine, Docker Desktop, runc, containerd], cpe: ["docker", "linuxfoundation:runc", "linuxfoundation:containerd"]}
+  - {name: AWS, area: cloud-virt, what: "Amazon's public cloud", aliases: [Amazon Web Services, AWS IAM, Amazon S3, Amazon EC2], cpe: ["amazon"]}
+  - {name: Google Cloud, area: cloud-virt, what: "Google's public cloud", aliases: [GCP, Google Cloud Platform], cpe: ["google:cloud_platform"]}
+  - {name: Veeam Backup, area: cloud-virt, what: "Widely used backup software for virtual environments", aliases: [Veeam], cpe: ["veeam"]}
+  - {name: Citrix Virtual Apps and Desktops, area: cloud-virt, what: "Citrix's VDI platform", aliases: [Citrix Virtual Apps, XenDesktop, Citrix Workspace], cpe: ["citrix:virtual_apps_and_desktops"]}
+  - {name: Nutanix, area: cloud-virt, what: "Hyper-converged infrastructure platform", aliases: [Nutanix AHV, Prism Central], cpe: ["nutanix"]}
+  - {name: OpenStack, area: cloud-virt, what: "Open-source private cloud platform", aliases: [], cpe: ["openstack"]}
+  - {name: HashiCorp Vault / Terraform, area: cloud-virt, what: "Secrets management and infrastructure-as-code tooling", aliases: [HashiCorp Vault, Terraform, OpenBao], cpe: ["hashicorp"]}
+
+  # ---------------- identity and privileged access
+  - {name: Okta, area: identity, what: "Cloud identity provider", aliases: [], cpe: ["okta"]}
+  - {name: CyberArk, area: identity, what: "Privileged access management suite", aliases: [], cpe: ["cyberark"]}
+  - {name: BeyondTrust, area: identity, what: "Privileged remote access and PAM", aliases: [BeyondTrust Remote Support, Privileged Remote Access], cpe: ["beyondtrust"]}
+  - {name: Delinea, area: identity, what: "Privileged access management, formerly Thycotic", aliases: [Secret Server, Thycotic], cpe: ["delinea", "thycotic"]}
+  - {name: Keycloak, area: identity, what: "Open-source identity provider", aliases: [], cpe: ["redhat:keycloak", "keycloak"]}
+  - {name: Ping Identity, area: identity, what: "Enterprise SSO and federation", aliases: [PingFederate], cpe: ["pingidentity"]}
+
+  # ---------------- devops and source control
+  - {name: GitLab, area: devops, what: "Self-hosted or cloud Git platform with CI/CD", aliases: [GitLab CE, GitLab EE, GitLab Runner], cpe: ["gitlab"]}
+  - {name: GitHub, area: devops, what: "Git hosting platform, including Enterprise Server and Actions", aliases: [GitHub Enterprise Server, GitHub Enterprise, GitHub Actions, GitHub Copilot, GitHub Desktop], cpe: ["github"]}
+  - {name: Git (client), area: devops, what: "The version control tool itself", aliases: [Git client, Git for Windows], cpe: ["git-scm:git", "git:git"]}
+  - {name: Jenkins, area: devops, what: "CI/CD automation server", aliases: [], cpe: ["jenkins"]}
+  - {name: Atlassian Confluence / Jira, area: devops, what: "Atlassian's wiki and issue tracker", aliases: [Confluence, Jira, Bitbucket, Atlassian], cpe: ["atlassian"]}
+  - {name: JetBrains TeamCity, area: devops, what: "CI/CD server", aliases: [TeamCity], cpe: ["jetbrains:teamcity"]}
+  - {name: npm / PyPI ecosystem, area: devops, what: "Public package registries; supply-chain attacks land here", aliases: [npm package, npm packages, PyPI package, PyPI packages, malicious npm, malicious PyPI], cpe: []}
+  - {name: Ansible / Red Hat automation, area: devops, what: "Configuration management and automation", aliases: [Ansible], cpe: ["redhat:ansible"]}
+  - {name: Grafana, area: devops, what: "Dashboards and observability", aliases: [], cpe: ["grafana"]}
+
+  # ---------------- endpoint: browsers, mobile, desktop apps
+  - {name: Google Chrome / Chromium, area: endpoint, what: "The dominant browser engine, also inside Edge and Electron apps", aliases: [Chrome, Chromium, V8], cpe: ["google:chrome"]}
+  - {name: Mozilla Firefox, area: endpoint, what: "Mozilla's browser", aliases: [Firefox, Thunderbird], cpe: ["mozilla"]}
+  - {name: Apple iOS / macOS, area: endpoint, what: "Apple's phone and desktop operating systems", aliases: [iOS, macOS, iPadOS, Safari, WebKit], cpe: ["apple"]}
+  - {name: Android, area: endpoint, what: "Google's mobile operating system", aliases: [], cpe: ["google:android"]}
+  - {name: Adobe Acrobat / Reader, area: endpoint, what: "The standard PDF reader", aliases: [Adobe Acrobat, Adobe Reader, Acrobat Reader], cpe: ["adobe:acrobat", "adobe:acrobat_reader", "adobe:acrobat_dc", "adobe:acrobat_reader_dc"]}
+  - {name: 7-Zip / WinRAR, area: endpoint, what: "Common archive tools", aliases: [7-Zip, WinRAR], cpe: ["7-zip", "rarlab"]}
+  - {name: Zoom, area: endpoint, what: "Video conferencing client", aliases: [], cpe: ["zoom"]}
+  - {name: CrowdStrike Falcon, area: endpoint, what: "Endpoint detection and response agent", aliases: [CrowdStrike], cpe: ["crowdstrike"]}
+
+  # ---------------- enterprise applications
+  - {name: SAP NetWeaver, area: enterprise-apps, what: "Application server under most SAP systems", aliases: [SAP NetWeaver, SAP S/4HANA, SAP], cpe: ["sap"]}
+  - {name: Oracle WebLogic / E-Business Suite, area: enterprise-apps, what: "Oracle's application server and ERP suite", aliases: [WebLogic, Oracle E-Business Suite, Oracle EBS, Oracle Database], cpe: ["oracle:weblogic_server", "oracle:e-business_suite", "oracle:database_server"]}
+  - {name: ServiceNow, area: enterprise-apps, what: "IT service management platform", aliases: [], cpe: ["servicenow"]}
+  - {name: Salesforce, area: enterprise-apps, what: "Cloud CRM", aliases: [], cpe: ["salesforce"]}
+  - {name: Progress MOVEit, area: enterprise-apps, what: "Managed file transfer", aliases: [MOVEit], cpe: ["progress:moveit_transfer", "progress"]}
+  - {name: N-able N-central, area: enterprise-apps, what: "Remote monitoring and management tool used by MSPs", aliases: [N-central, N-able], cpe: ["n-able"]}
+  - {name: ConnectWise ScreenConnect, area: enterprise-apps, what: "Remote support tool used by MSPs", aliases: [ScreenConnect, ConnectWise], cpe: ["connectwise"]}
+  - {name: SolarWinds, area: enterprise-apps, what: "Network and systems monitoring", aliases: [SolarWinds Orion, Web Help Desk], cpe: ["solarwinds"]}
+  - {name: Zimbra, area: enterprise-apps, what: "Mail and collaboration server", aliases: [], cpe: ["zimbra", "synacor"]}
+  - {name: Roundcube, area: enterprise-apps, what: "Webmail client", aliases: [], cpe: ["roundcube"]}
+  - {name: Nextcloud, area: enterprise-apps, what: "Self-hosted file sync and collaboration", aliases: [], cpe: ["nextcloud"]}
+  - {name: Synology / QNAP NAS, area: enterprise-apps, what: "Network storage appliances", aliases: [Synology, QNAP], cpe: ["synology", "qnap"]}
+  - {name: Splunk, area: enterprise-apps, what: "Log management and SIEM", aliases: [], cpe: ["splunk"]}
+  - {name: IBM (enterprise software), area: enterprise-apps, what: "IBM products such as WebSphere, Db2, QRadar or Aspera", aliases: [WebSphere, IBM QRadar, IBM Aspera, IBM Db2], cpe: ["ibm"]}

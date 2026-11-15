@@ -1,0 +1,73 @@
+name: collect
+
+on:
+  schedule:
+    - cron: "7,37 * * * *"      # every 30 minutes (GitHub may delay scheduled runs under load)
+  workflow_dispatch:
+
+permissions:
+  contents: write               # push the data branch
+  pages: write
+  id-token: write
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -q -r requirements.txt
+
+      - name: Restore state from the data branch
+        run: |
+          mkdir -p data
+          if git ls-remote --exit-code --heads origin data >/dev/null; then
+            git fetch --depth=1 origin data
+            git archive FETCH_HEAD | tar -x -C data
+          fi
+
+      - name: Collect, alert, build
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AI_SUMMARY_MODEL: ${{ secrets.AI_SUMMARY_MODEL }}
+          AI_BRIEF_MODEL: ${{ secrets.AI_BRIEF_MODEL }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          WATCHLIST_YAML: ${{ secrets.WATCHLIST_YAML }}
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}          # optional, raises the NVD rate limit
+          GITHUB_TOKEN: ${{ github.token }}
+          PUBLIC_SITE: "1"                                   # keep vendor feeds (your stack) out of the site
+          PORTAL_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+        run: python -m collector.main --data data --out public
+
+      # One orphan commit, force-pushed: main stays clean and the repo does not grow.
+      - name: Save state to the data branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          cd data
+          rm -rf .git
+          git init -q -b data
+          git add -A
+          git -c user.name="secpulse-bot" -c user.email="secpulse-bot@users.noreply.github.com" \
+            commit -qm "data $(date -u +%FT%TZ)"
+          git push -qf "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deploy
+        uses: actions/deploy-pages@v4

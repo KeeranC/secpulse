@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>SecPulse</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f1720'/%3E%3Cpath d='M3 17h6l3-9 5 16 3-10 2 3h7' fill='none' stroke='%2334d3b4' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 32 20" aria-hidden="true"><path d="M1 11h7l3-9 5 16 3-10 2 3h10" /></svg>
+    <span>SecPulse</span>
+  </div>
+  <nav class="seg" id="tabs" aria-label="View">
+    <button data-v="brief">Briefing</button><button data-v="all">Everything</button>
+  </nav>
+  <span class="sp"></span>
+  <input id="q" type="search" placeholder="Search  ( / )" aria-label="Search stories and CVEs" autocomplete="off">
+  <button class="icon" id="stackBtn" title="Products you work with">My stack</button>
+  <button class="icon" id="themeBtn" title="Switch light/dark" aria-label="Switch light or dark theme">◐</button>
+</header>
+
+<main id="app" hidden>
+  <p class="status" id="status">Loading…</p>
+
+  <!-- Emergency: critical cases that stay until marked as handled -->
+  <section class="emergency" id="emergency" aria-label="Emergency" hidden></section>
+
+  <!-- Briefing: one column, readable in a minute -->
+  <div id="vBrief">
+    <section aria-labelledby="hA">
+      <h2 id="hA">Your products</h2>
+      <div id="board"></div>
+    </section>
+    <section aria-labelledby="hB">
+      <h2 id="hB">Big in the industry <span class="sub">last 30 days</span></h2>
+      <div id="big"></div>
+    </section>
+    <section aria-labelledby="hC">
+      <h2 id="hC">News <span class="sub" id="newsSub"></span></h2>
+      <div id="news"></div>
+    </section>
+  </div>
+
+  <!-- Everything: the full picture, same quiet rows -->
+  <div id="vAll" hidden>
+    <section class="pulse" id="pulse" aria-label="Trends"></section>
+    <section aria-labelledby="hV">
+      <h2 id="hV">Vulnerabilities <span class="sub" id="vulnSub"></span></h2>
+      <nav class="chips" id="vulnChips" aria-label="Filter vulnerabilities"></nav>
+      <div id="vulns"></div>
+    </section>
+    <section aria-labelledby="hS">
+      <h2 id="hS">Stories <span class="sub" id="storiesSub"></span></h2>
+      <nav class="chips" id="chips" aria-label="Categories"></nav>
+      <div id="stories"></div>
+    </section>
+    <section aria-labelledby="hR">
+      <h2 id="hR">CVE radar <span class="sub" id="radarSub"></span></h2>
+      <div id="radar"></div>
+    </section>
+    <section aria-labelledby="hH" id="handledSec" hidden>
+      <h2 id="hH">Handled <span class="sub">stored in this browser</span></h2>
+      <div id="handled"></div>
+    </section>
+  </div>
+  <footer class="foot" id="foot"></footer>
+</main>
+<p class="empty" id="empty" hidden role="status"></p>
+
+<dialog id="stackDlg">
+  <form method="dialog">
+    <h3>My stack</h3>
+    <p><b>Your products</b>: what you run and are responsible for, one per line, optionally with your version. Only these get <span class="v v-act">Act</span> or <span class="v v-check">Check</span>; with a version, SecPulse also tells you whether you are affected.</p>
+    <textarea id="coreTxt" rows="7" spellcheck="false" placeholder="Fortinet FortiOS 7.4.3&#10;VMware ESXi 8.0&#10;Microsoft Exchange"></textarea>
+    <p><b>Areas</b>: fields you follow. Used only as a filter under “Everything”; they never move anything up.</p>
+    <div class="areas" id="areaBox"></div>
+    <div id="mutedRow" hidden><p><b>Muted</b>: hidden from the Briefing. Click to unmute.</p><div class="mutedbox" id="mutedBox"></div></div>
+    <p class="fine">Stored only in this browser, never uploaded. Phone alerts use a separate copy that you keep as the WATCHLIST_YAML secret; the button below produces it.</p>
+    <div class="row"><button type="button" class="ghost" id="yamlBtn">Copy as YAML</button><span class="sp"></span>
+      <button value="cancel" class="ghost">Cancel</button><button value="save" class="primary">Save</button></div>
+    <textarea id="yamlOut" rows="6" readonly hidden></textarea>
+    <div class="row io"><span class="fine">Stack, handled items and mutes:</span>
+      <button type="button" class="ghost" id="exportBtn">Export file</button>
+      <label class="ghost filebtn">Import file<input type="file" id="importFile" accept="application/json,.json" hidden></label></div>
+    <p class="fine" id="ioMsg" role="status"></p>
+  </form>
+</dialog>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Copy to config/watchlist.yaml (git-ignored) for local runs.
+# In GitHub Actions the same content goes into the WATCHLIST_YAML secret.
+#
+# core:  products you run. A name from config/products.yaml uses that product's exact
+#        identifiers; anything else is matched as a keyword. A mapping gives finer control:
+#          vendor / products: CPE names      keywords: phrases searched in title and description
+# areas: broad areas from the catalogue (microsoft, network-edge, linux-oss-web, cloud-virt,
+#        identity, devops, endpoint, enterprise-apps). Highlighted in the portal; a phone
+#        alert only when something in the area is actively exploited.
+
+core:
+  - Fortinet FortiOS 7.4.3
+  - VMware ESXi
+  - name: Microsoft Exchange
+    vendor: microsoft
+    products: [exchange_server]
+    keywords: ["Exchange Server"]
+  - name: My in-house tool
+    keywords: ["acme-toolname"]
+
+areas:
+  - network-edge
+
+# Optional, private: security releases straight from the vendor. Listed here rather than in
+# config/sources.yaml because the list reveals your stack.
+#   url, product (catalogue name); optional include / exclude / security patterns
+feeds:
+  - {name: Example releases, url: "https://github.com/example/product/releases.atom", product: VMware ESXi, exclude: ['-rc|-beta']}

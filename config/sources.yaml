@@ -1,0 +1,60 @@
+# RSS/Atom feeds. Add or remove freely.
+#   kind:     news | research | advisory | gov | breach | community | vendor
+#   Vendor feeds (security releases of the products you run) are NOT listed here: they
+#   would reveal your stack. They go under `feeds:` in your private watchlist.
+#   include:  optional patterns; only entries matching one are kept (for mixed changelogs)
+#   weight:   1 (low signal) to 5 (must-read); drives story ranking
+#   max:      newest N entries taken per run (default 30)
+#   category: optional default category when keyword rules do not decide
+
+# Entries whose title, feed tags or URL match one of these are dropped: newsletters,
+# podcasts, webinars and weekly roundups are not news. A feed may add its own `exclude` list.
+exclude:
+  - "newsletter"
+  - "podcast|stormcast|auslegungssache|passwort[- ]podcast|\\bfolge \\d+"
+  - "webinar|sponsored"
+  - "week in (review|security)|weekly (recap|roundup|round-up|update)|this week in|month in review"
+  - "threatsday|roundup|round-up|\\brecap\\b"
+
+feeds:
+  # --- News ---
+  - {name: BleepingComputer,   url: "https://www.bleepingcomputer.com/feed/",            kind: news, weight: 5}
+  - {name: The Record,         url: "https://therecord.media/feed",                      kind: news, weight: 5}
+  - {name: The Hacker News,    url: "https://feeds.feedburner.com/TheHackersNews",       kind: news, weight: 4}
+  - {name: SecurityWeek,       url: "https://www.securityweek.com/feed/",                kind: news, weight: 4}
+  - {name: Dark Reading,       url: "https://www.darkreading.com/rss.xml",               kind: news, weight: 3}
+  - {name: Help Net Security,  url: "https://www.helpnetsecurity.com/feed/",             kind: news, weight: 3}
+  - {name: The Register,       url: "https://www.theregister.com/security/headlines.atom", kind: news, weight: 3}
+  - {name: heise Security,     url: "https://www.heise.de/security/rss/news-atom.xml",   kind: news, weight: 3}
+  - {name: Krebs on Security,  url: "https://krebsonsecurity.com/feed/",                 kind: news, weight: 5}
+
+  # --- Research ---
+  - {name: Google Project Zero, url: "https://googleprojectzero.blogspot.com/feeds/posts/default", kind: research, weight: 5}
+  - {name: watchTowr Labs,     url: "https://labs.watchtowr.com/rss/",                   kind: research, weight: 5}
+  - {name: Rapid7,             url: "https://www.rapid7.com/blog/rss/",                  kind: research, weight: 4}
+  - {name: Unit 42,            url: "https://unit42.paloaltonetworks.com/feed/",         kind: research, weight: 4}
+  - {name: Cisco Talos,        url: "https://blog.talosintelligence.com/rss/",           kind: research, weight: 4}
+  - {name: Google Threat Intelligence, url: "https://feeds.feedburner.com/threatintelligence/pvexyqv7v0v", kind: research, weight: 5}
+  - {name: Microsoft Security, url: "https://www.microsoft.com/en-us/security/blog/feed/", kind: research, weight: 4}
+  - {name: SANS ISC,           url: "https://isc.sans.edu/rssfeed_full.xml",             kind: research, weight: 4}
+  - {name: Schneier on Security, url: "https://www.schneier.com/feed/atom/",             kind: research, weight: 3}
+
+  # --- Vendor advisories ---
+  - {name: Microsoft MSRC,     url: "https://api.msrc.microsoft.com/update-guide/rss",   kind: advisory, weight: 2, max: 15, category: vulnerabilities}
+  - {name: Cisco PSIRT,        url: "https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml", kind: advisory, weight: 2, max: 15, category: vulnerabilities}
+  - {name: Fortinet PSIRT,     url: "https://filestore.fortinet.com/fortiguard/rss/ir.xml", kind: advisory, weight: 2, max: 15, category: vulnerabilities}
+  - {name: Palo Alto Networks PSIRT, url: "https://security.paloaltonetworks.com/rss.xml", kind: advisory, weight: 2, max: 15, category: vulnerabilities}
+
+  # --- Government / CERT ---
+  # CISA's advisory feed refuses automated clients (HTTP 403); its exploited-vulnerability
+  # catalogue (KEV) is pulled separately and is the part that drives alerts.
+  - {name: NCSC UK,            url: "https://www.ncsc.gov.uk/api/1/services/v1/report-rss-feed.xml", kind: gov, weight: 3, category: policy}
+  - {name: CERT-Bund,          url: "https://wid.cert-bund.de/content/public/securityAdvisory/rss", kind: advisory, weight: 2, max: 15, category: vulnerabilities}
+
+  # --- Breaches / ransomware ---
+  - {name: Have I Been Pwned,  url: "https://feeds.feedburner.com/HaveIBeenPwnedLatestBreaches", kind: breach, weight: 3, category: breaches}
+  - {name: ransomware.live,    url: "https://www.ransomware.live/rss.xml",               kind: breach, weight: 1, max: 10, category: ransomware}
+
+  # --- Community ---
+  - {name: r/netsec,           url: "https://www.reddit.com/r/netsec/.rss",              kind: community, weight: 2, max: 15, category: research}
+  - {name: Hacker News,        url: "https://hnrss.org/newest?q=CVE+OR+vulnerability+OR+ransomware+OR+%22data+breach%22&points=150", kind: community, weight: 2, max: 15}

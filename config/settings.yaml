@@ -1,0 +1,27 @@
+# SecPulse settings. Nothing in this file is secret.
+
+timezone: Europe/Berlin      # used for the daily brief time
+brief_hour: 7                # local hour after which the daily brief is built and pushed
+portal_url: ""               # e.g. https://<user>.github.io/<repo>/  (alert notifications link here)
+ntfy_server: https://ntfy.sh
+
+retention_days: 30           # how long news and CVEs are kept
+backfill_days: 30            # how far back the very first run looks (fills "Major vulnerabilities")
+majors_days: 30              # window of the "Major vulnerabilities" block
+
+alerts:
+  watch_cvss: 7.0            # watchlist match alerts at or above this CVSS ...
+  watch_epss: 0.10           # ... or at or above this EPSS probability, or with a public PoC
+  any_epss: 0.50             # any vendor: alert at or above this EPSS
+  any_cvss_with_poc: 9.8     # any vendor: alert at or above this CVSS when a public PoC exists
+  fresh_days: 7              # only CVEs published within this many days can alert
+  kev_fresh_days: 5          # KEV additions alert only within this many days of being added
+  any_min_sources: 2         # outside your products: only catalogue products covered by this many outlets
+  bundle_over: 5             # more alerts than this in one run are sent as one notification
+
+ai:
+  enabled: true              # needs ANTHROPIC_API_KEY plus AI_SUMMARY_MODEL and AI_BRIEF_MODEL
+                             # (environment / secrets); without them the portal uses feed teasers
+  language: English
+  max_story_summaries_per_run: 25
+  max_cve_notes_per_run: 15
