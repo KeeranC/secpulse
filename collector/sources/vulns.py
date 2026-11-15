@@ -129,7 +129,8 @@ def _nvd_pause():
     time.sleep(0.7 if os.environ.get("NVD_API_KEY") else 6.5)
 
 
-def fetch_nvd_window(start: datetime, end: datetime, *, modified=False) -> list[dict]:
+def fetch_nvd_window(start: datetime, end: datetime, *, modified=False) -> tuple[list[dict], bool]:
+    """(records, complete). complete is False when NVD failed part-way, so the caller can retry the window."""
     fmt = "%Y-%m-%dT%H:%M:%S.000Z"
     a, b = ("lastModStartDate", "lastModEndDate") if modified else ("pubStartDate", "pubEndDate")
     out, index = [], 0
@@ -138,14 +139,14 @@ def fetch_nvd_window(start: datetime, end: datetime, *, modified=False) -> list[
                 params={a: start.strftime(fmt), b: end.strftime(fmt), "startIndex": index, "resultsPerPage": 2000})
         if r.status_code != 200:
             log.warning("NVD returned HTTP %s", r.status_code)
-            break
+            return out, False
         data = r.json()
         out.extend(parse_nvd(v["cve"]) for v in data.get("vulnerabilities", []))
         index += data.get("resultsPerPage", 0)
         if index >= data.get("totalResults", 0) or not data.get("resultsPerPage"):
             break
         _nvd_pause()
-    return out
+    return out, True
 
 
 def fetch_nvd_ids(ids: list[str]) -> list[dict]:

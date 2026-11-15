@@ -400,3 +400,24 @@ def test_vendor_feeds_come_from_the_private_watchlist():
     assert load_vendor_feeds(["GitLab"]) == []
     src = yaml.safe_load((ROOT / "config" / "sources.yaml").read_text(encoding="utf-8"))
     assert not [f for f in src["feeds"] if f.get("kind") == "vendor"]   # never in the public config
+
+
+def test_nvd_outage_keeps_the_window_for_the_next_run(monkeypatch):
+    from collector import main
+    from collector.sources import vulns
+    calls = []
+
+    def fake(start, end, modified=False):
+        calls.append(modified)
+        return [], len(calls) > 1          # first call fails (503), second succeeds
+    monkeypatch.setattr(vulns, "fetch_nvd_window", fake)
+    for name in ("fetch_cvelist_new", "fetch_ghsa"):
+        monkeypatch.setattr(vulns, name, lambda *a, **k: [])
+    monkeypatch.setattr(vulns, "fetch_epss", lambda ids: {})
+    monkeypatch.setattr(vulns, "public_poc", lambda cid: (False, None))
+    cfg = main.load_settings()
+    state = {"last_run": iso(NOW - timedelta(hours=1))}   # collector ran before, NVD never completed
+    main.collect_cves({}, {}, {}, state, cfg, NOW, first_run=False)
+    assert "nvd_since" not in state and calls == [False]   # full backfill tried, watermark not moved
+    main.collect_cves({}, {}, {}, state, cfg, NOW, first_run=False)
+    assert state["nvd_since"] and calls == [False, False]  # retried in full, now recorded

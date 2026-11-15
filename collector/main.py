@@ -108,12 +108,17 @@ def merge_cve(store: dict, rec: dict, now):
 
 def collect_cves(cves, items, kev, state, cfg, now, first_run):
     retention = cfg["retention_days"]
-    last = parse_dt(state.get("last_run"))
-    if first_run or last is None or (now - last).days >= cfg["backfill_days"]:
-        recs = vulns.fetch_nvd_window(now - timedelta(days=cfg["backfill_days"]), now)
+    # NVD has its own watermark: it only moves on when the whole window arrived, so an outage
+    # (NVD often answers 503) is caught up on the next run instead of leaving a gap.
+    since = parse_dt(state.get("nvd_since"))
+    backfill = since is None or (now - since).days >= cfg["backfill_days"]
+    if backfill:
+        recs, complete = vulns.fetch_nvd_window(now - timedelta(days=cfg["backfill_days"]), now)
     else:
-        recs = vulns.fetch_nvd_window(last - timedelta(hours=1), now, modified=True)
-    log.info("NVD: %d records", len(recs))
+        recs, complete = vulns.fetch_nvd_window(since - timedelta(hours=1), now, modified=True)
+    if complete:
+        state["nvd_since"] = iso(now)
+    log.info("NVD: %d records%s", len(recs), "" if complete else " (incomplete, retried next run)")
     fresh = vulns.fetch_cvelist_new()
     log.info("CVE.org delta: %d new", len(fresh))
     ghsa = vulns.fetch_ghsa()
