@@ -72,6 +72,8 @@ The portal keeps its own copy in the browser (**My stack** button). The dialog's
    | `ANTHROPIC_API_KEY` | optional: API key for written summaries and the daily brief |
    | `AI_SUMMARY_MODEL`, `AI_BRIEF_MODEL` | optional, needed with the key: model ids for summaries and the brief |
    | `NVD_API_KEY` | optional, raises the NVD rate limit |
+   | `NTFY_TOKEN` | optional: access token, for a reserved topic or a self-hosted ntfy server |
+   | `STATE_KEY` | optional: long random string that keys the alert log instead of the topic |
 
 5. Run the **collect** workflow once by hand. The first run records the backfill silently and sends a single "SecPulse is live" push; alerts start with the second run.
 
@@ -112,6 +114,19 @@ The Pages site and the `data` branch are public on a free GitHub plan, so nothin
 - vendor feeds come from the watchlist; their items are neither published, saved to the `data` branch nor named in the CI log;
 - CI logs contain counts only (`--dry-run` prints matches and is for local use);
 - verdicts and "Your products" are computed in the browser from the list in local storage.
+
+## Workflow security
+
+The workflow runs in two jobs so that untrusted feed content and write access never meet:
+
+- **collect** fetches and parses the feeds with a read-only token. It has the secrets it needs (watchlist, ntfy) but cannot push or deploy, and hands over only JSON files.
+- **publish** has the write token. It runs no feed parsers and no third-party packages: it checks the handed-over file names and JSON, builds the site from `main` (`collector/sitecopy.py`, standard library only), saves the `data` branch and deploys Pages.
+
+Actions are pinned to commit SHAs and Python packages to hashes (`requirements.lock`, installed with `--require-hashes`). Dependabot proposes updates weekly (`.github/dependabot.yml`). After changing `requirements.in`, regenerate the lock file:
+
+```bash
+pip-compile --generate-hashes --strip-extras -o requirements.lock requirements.in
+```
 
 ## Known limits
 

@@ -4,13 +4,11 @@ Only public information is written here. Nothing derived from the watchlist may 
 """
 from __future__ import annotations
 
-import hashlib
-import re
-import shutil
 from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from .sitecopy import copy_site
 from .util import age_days, iso, parse_dt, save_json
 
 
@@ -79,27 +77,6 @@ def trends(cves: dict, kev: dict, now: datetime) -> dict:
         "kev": [kev_adds[d] for d in days],
         "top_vendors": vendors.most_common(6),
     }
-
-
-def copy_site(site_dir: Path, out_dir: Path) -> None:
-    """Copy the portal and stamp its stylesheet and script with a content hash.
-
-    Without the stamp a browser can pair a fresh index.html with a cached style.css or app.js
-    from an older version, which shows a broken page until the cache expires.
-    """
-    shutil.copytree(site_dir, out_dir, dirs_exist_ok=True)
-    index = out_dir / "index.html"
-    if not index.exists():
-        return
-    html = index.read_text(encoding="utf-8")
-
-    def stamp(m):
-        f = out_dir / m.group(2)
-        if not f.exists():
-            return m.group(0)
-        return f'{m.group(1)}{m.group(2)}?v={hashlib.sha256(f.read_bytes()).hexdigest()[:10]}"'
-    html = re.sub(r'((?:href|src)=")(style\.css|app\.js)(?:\?v=\w+)?"', stamp, html)
-    index.write_bytes(html.encode("utf-8"))
 
 
 def publish(out_dir: Path, site_dir: Path, *, stories, cves, kev, brief, feed_status, ai_on, now, retention,
