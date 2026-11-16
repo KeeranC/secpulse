@@ -734,6 +734,8 @@ async function load(attempt = 0) {
 }
 
 async function boot() {
+  // Clickjacking guard: GitHub Pages cannot send frame headers, so the page checks itself.
+  if (window.top !== window.self) { document.body.replaceChildren('SecPulse does not run inside a frame.'); return; }
   const theme = store.get('theme', null);
   if (theme) document.documentElement.dataset.theme = theme;
   if (!['brief', 'all'].includes(S.view)) S.view = 'brief';

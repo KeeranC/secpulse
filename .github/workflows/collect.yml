@@ -45,6 +45,8 @@ jobs:
           AI_SUMMARY_MODEL: ${{ secrets.AI_SUMMARY_MODEL }}
           AI_BRIEF_MODEL: ${{ secrets.AI_BRIEF_MODEL }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}            # optional: access token for a reserved topic
+          STATE_KEY: ${{ secrets.STATE_KEY }}              # optional: separate key for the alert log
           WATCHLIST_YAML: ${{ secrets.WATCHLIST_YAML }}
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}          # optional, raises the NVD rate limit
           GITHUB_TOKEN: ${{ github.token }}

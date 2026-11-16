@@ -7,8 +7,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 import feedparser
+import requests
 
-from ..util import CVE_RE, find_cves, get, iso, sid, strip_html, utcnow
+from ..util import CVE_RE, UA, find_cves, get, iso, sid, strip_html, utcnow
 
 
 def compile_exclude(patterns) -> re.Pattern | None:
@@ -20,11 +21,15 @@ def page_cves(url: str) -> list[str]:
     """CVE ids an article is actually about, read from its page. Nothing else is kept.
     Ids named only once are usually sidebar links to other stories, and a page naming many
     is a roundup, so both are ignored."""
+    if not str(url).lower().startswith(("https://", "http://")):
+        return []
     try:
-        r = get(url, timeout=15, retries=0)
-        if r.status_code != 200 or "html" not in r.headers.get("content-type", ""):
-            return []
-        counts = Counter(m.upper() for m in CVE_RE.findall(r.text[:600_000]))
+        # Feed links are untrusted: read at most 600 kB, never the whole response.
+        with requests.get(url, headers={"User-Agent": UA}, timeout=15, stream=True) as r:
+            if r.status_code != 200 or "html" not in r.headers.get("content-type", ""):
+                return []
+            text = r.raw.read(600_000, decode_content=True).decode("utf-8", "replace")
+        counts = Counter(m.upper() for m in CVE_RE.findall(text))
     except Exception:
         return []
     if len(counts) > 10:

@@ -434,3 +434,15 @@ def test_site_assets_are_stamped_so_caches_cannot_mix(tmp_path):
     (ROOT / "site")  # source stays untouched
     src = (ROOT / "site" / "index.html").read_text(encoding="utf-8")
     assert "?v=" not in src
+
+
+def test_bad_watchlist_yaml_never_echoes_its_content(monkeypatch, caplog):
+    from collector import main
+    monkeypatch.setenv("WATCHLIST_YAML", "core:\n  - SecretProductName\n   bad: [indent")
+    assert main.load_watchlist() == []
+    assert "SecretProductName" not in caplog.text
+
+
+def test_article_reader_only_follows_web_links():
+    from collector.sources.rss import page_cves
+    assert page_cves("file:///etc/passwd") == [] and page_cves("ftp://example.org/x") == []

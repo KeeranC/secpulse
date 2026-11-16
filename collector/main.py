@@ -65,7 +65,12 @@ def load_watchlist():
     path = ROOT / "config" / "watchlist.yaml"
     if not raw and path.exists():
         raw = path.read_text(encoding="utf-8")
-    data = yaml.safe_load(raw) if raw else None
+    try:
+        data = yaml.safe_load(raw) if raw else None
+    except yaml.YAMLError:
+        # Never print the parser's message: it quotes the offending lines of the (secret) list.
+        log.error("the watchlist is not valid YAML; running without it")
+        data = None
     return data if isinstance(data, (dict, list)) else []
 
 
@@ -313,7 +318,7 @@ def run(args) -> int:
         c["news_date"] = last_mention.get(cid)
 
     # ---- alert decisions (after press coverage is known: it gates the any-vendor levels)
-    secret = topic or "local"
+    secret = os.environ.get("STATE_KEY", "").strip() or topic or "local"
     alog = state.setdefault("alerted", {})
     alerts = []
     for c in cves.values():

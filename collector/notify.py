@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import os
+from functools import lru_cache
 
 import requests
 
@@ -14,9 +16,16 @@ def alert_key(secret: str, cve_id: str) -> str:
     """Opaque key for the alert log.
 
     The state file lives on a public branch. Storing plain CVE ids there would reveal which
-    CVEs matched the private watchlist, so they are keyed with the (secret) ntfy topic.
+    CVEs matched the private watchlist, so they are keyed with a secret (STATE_KEY, or the
+    ntfy topic). The key is stretched with scrypt first: a plain HMAC would let anyone test
+    guesses for the secret offline, millions per second, against the public file.
     """
-    return hmac.new((secret or "local").encode(), cve_id.encode(), hashlib.sha256).hexdigest()[:20]
+    return hmac.new(_log_key(secret or "local"), cve_id.encode(), hashlib.sha256).hexdigest()[:20]
+
+
+@lru_cache(maxsize=4)
+def _log_key(secret: str) -> bytes:
+    return hashlib.scrypt(secret.encode(), salt=b"secpulse/alert-log/v2", n=2 ** 14, r=8, p=1, dklen=32)
 
 
 def send(server: str, topic: str, *, title: str, message: str, priority=3, tags=None, click=None) -> bool:
@@ -25,8 +34,11 @@ def send(server: str, topic: str, *, title: str, message: str, priority=3, tags=
         payload["tags"] = tags
     if click:
         payload["click"] = click
+    # Optional access token, for a reserved topic on ntfy.sh or a self-hosted server.
+    token = os.environ.get("NTFY_TOKEN", "").strip()
+    headers = {"Authorization": f"Bearer {token}"} if token else None
     try:
-        r = requests.post(server.rstrip("/") + "/", json=payload, timeout=20)
+        r = requests.post(server.rstrip("/") + "/", json=payload, headers=headers, timeout=20)
         if r.status_code >= 300:
             log.warning("ntfy returned HTTP %s", r.status_code)
         return r.status_code < 300
