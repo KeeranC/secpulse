@@ -34,7 +34,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install pinned packages (hash-checked)
-        run: pip install -q --require-hashes --no-deps -r requirements.lock
+        run: pip install -q --require-hashes --no-deps -r requirements.txt
 
       - name: Restore state from the data branch
         run: |

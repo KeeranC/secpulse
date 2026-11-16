@@ -1,20 +1,25 @@
 version: 2
+# Monthly, one grouped pull request per ecosystem. New releases must be 7 days old before
+# they are proposed: a hijacked release is usually spotted and pulled within days.
+# .github/workflows/dependabot.yml tests each pull request and merges it when the tests pass.
 updates:
-  # Keeps the SHA-pinned actions current (Dependabot updates the hash and the version comment).
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    cooldown:
+      default-days: 7
     groups:
       actions:
         patterns: ["*"]
 
-  # Proposes updates to requirements.lock. Regenerate with hashes before merging if needed:
-  #   pip-compile --generate-hashes --strip-extras -o requirements.lock requirements.in
+  # requirements.txt is compiled from requirements.in with hashes; Dependabot keeps both in step.
   - package-ecosystem: pip
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    cooldown:
+      default-days: 7
     groups:
       python:
         patterns: ["*"]

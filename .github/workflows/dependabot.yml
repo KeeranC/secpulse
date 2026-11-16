@@ -1,0 +1,44 @@
+name: dependabot
+
+# Tests Dependabot's update pull requests and merges them when the tests pass.
+# The test job runs the updated code with a read-only token; only the merge job, which
+# checks out and runs nothing, may write.
+
+on: pull_request
+
+permissions: {}
+
+jobs:
+  test:
+    # Only Dependabot's own pull requests, and only when Dependabot triggered this run.
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065   # v5.6.0
+        with:
+          python-version: "3.13"
+      - run: pip install -q --require-hashes --no-deps -r requirements.txt
+      - run: pip install -q -r requirements-dev.txt
+      - run: python -m pytest -q
+      - name: The site still builds
+        run: python collector/sitecopy.py site _site
+
+  merge:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Squash-merge the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --squash --delete-branch "$PR_URL"

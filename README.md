@@ -18,7 +18,7 @@ A scheduled GitHub Actions job runs the collector every 30 minutes and publishes
 ## Run it locally
 
 ```bash
-pip install -r requirements.txt
+pip install --require-hashes -r requirements.txt
 ```
 
 ```bash
@@ -122,10 +122,12 @@ The workflow runs in two jobs so that untrusted feed content and write access ne
 - **collect** fetches and parses the feeds with a read-only token. It has the secrets it needs (watchlist, ntfy) but cannot push or deploy, and hands over only JSON files.
 - **publish** has the write token. It runs no feed parsers and no third-party packages: it checks the handed-over file names and JSON, builds the site from `main` (`collector/sitecopy.py`, standard library only), saves the `data` branch and deploys Pages.
 
-Actions are pinned to commit SHAs and Python packages to hashes (`requirements.lock`, installed with `--require-hashes`). Dependabot proposes updates weekly (`.github/dependabot.yml`). After changing `requirements.in`, regenerate the lock file:
+Actions are pinned to commit SHAs and Python packages to hashes (`requirements.txt`, compiled from `requirements.in`, installed with `--require-hashes`).
+
+**Updates run by themselves.** Once a month Dependabot opens one pull request for the Actions and one for the packages, proposing only releases that are at least 7 days old. The `dependabot` workflow runs the tests on it with a read-only token and squash-merges it when they pass; a failing update stays open for you to look at. Merged updates show `dependabot[bot]` as a contributor. After changing `requirements.in` by hand, recompile:
 
 ```bash
-pip-compile --generate-hashes --strip-extras -o requirements.lock requirements.in
+pip-compile --generate-hashes --strip-extras requirements.in
 ```
 
 ## Known limits
@@ -138,6 +140,10 @@ pip-compile --generate-hashes --strip-extras -o requirements.lock requirements.i
 - Summaries, when enabled, are machine-written from headlines and feed teasers. Follow the source link before acting on one.
 
 ## Tests
+
+```bash
+pip install -r requirements-dev.txt
+```
 
 ```bash
 python -m pytest -q
