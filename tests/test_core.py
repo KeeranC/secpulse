@@ -60,6 +60,21 @@ def test_free_text_only_counts_where_the_subject_stands():
     assert CAT.match_cve(cve(desc="SomeTool before 2.1 reads the GitHub webhook body without checks")) is None
 
 
+def test_vendor_name_before_the_product_still_counts_as_subject():
+    # A new CVE has no CPE data yet; Oracle writes "Vulnerability in the Oracle Java SE ...".
+    c = cve(desc="Vulnerability in the Oracle Java SE, Oracle GraalVM for JDK product of Oracle Java SE "
+                 "(component: Compiler). Supported versions that are affected are ...")
+    assert CAT.match_cve(c)["name"] == "OpenJDK / Java"
+    assert CAT.match_cve(cve(desc="An issue in the Oracle portal mentions Java SE in passing")) is None
+
+
+def test_big_new_flaw_in_a_broad_product_reaches_the_front_page():
+    c = tagged(id="CVE-2026-9", cvss=8.1, path="remote, no login, no user action",
+               desc="Vulnerability in the Oracle Java SE product of Oracle Java SE (component: Compiler).")
+    out = build_majors({"CVE-2026-9": c}, [], {"CVE-2026-9": {"A", "B", "C"}}, CAT, NOW)
+    assert out[0]["product"] == "OpenJDK / Java" and out[0]["broad"] and out[0]["front"]
+
+
 def test_catalog_text_match_for_headlines():
     names = {p["name"] for p in CAT.match_text("SonicWall warns of SSLVPN attacks")}
     assert "SonicWall" in names

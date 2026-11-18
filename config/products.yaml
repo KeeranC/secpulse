@@ -66,7 +66,7 @@ products:
   - {name: Spring Framework, area: linux-oss-web, what: "The dominant Java application framework", aliases: [Spring Boot, Spring4Shell], cpe: ["vmware:spring_framework", "vmware:spring_boot", "pivotal_software:spring_framework"]}
   - {name: Node.js, area: linux-oss-web, what: "JavaScript server runtime", aliases: [], cpe: ["nodejs:node.js"]}
   - {name: Python (interpreter), area: linux-oss-web, what: "The Python interpreter", aliases: [CPython], cpe: ["python:python"]}
-  - {name: OpenJDK / Java, area: linux-oss-web, what: "The Java runtime", aliases: [Java SE, OpenJDK], cpe: ["oracle:jdk", "oracle:openjdk", "oracle:java_se"]}
+  - {name: OpenJDK / Java, area: linux-oss-web, what: "The Java runtime", aliases: [Java SE, OpenJDK, Java4Shell], cpe: ["oracle:jdk", "oracle:openjdk", "oracle:java_se"]}
   - {name: WordPress core, area: linux-oss-web, what: "The most widely used website CMS (core, not plugins)", aliases: [WordPress core], cpe: ["wordpress:wordpress"]}
   - {name: Drupal (core), area: linux-oss-web, what: "Website CMS (core, not contributed modules)", aliases: [Drupal core], cpe: ["drupal:drupal"]}
   - {name: MySQL / MariaDB, area: linux-oss-web, what: "Open-source relational databases", aliases: [MySQL, MariaDB], cpe: ["oracle:mysql", "mariadb"]}

@@ -31,9 +31,14 @@ def is_catchall(name: str) -> bool:
 _SUBJECT_LEAD = re.compile(r"(?:^|(?:^|\s)(?:in|of|for|affecting|within)\s(?:the\s)?)$")
 
 
-def _is_subject(rx: re.Pattern, text: str) -> bool:
+def _is_subject(rx: re.Pattern, text: str, vendors=()) -> bool:
     for m in rx.finditer(text):
         before = text[: m.start()]
+        # "in the Oracle Java SE": the vendor's name may stand between "in the" and the product.
+        for v in vendors:
+            if before.endswith(" " + v + " "):
+                before = before[: -len(v) - 1]
+                break
         if m.start() <= 12 or _SUBJECT_LEAD.search(before):
             return True
     return False
@@ -53,6 +58,8 @@ class Catalog:
             self.products.append({"name": p["name"], "area": p.get("area", ""), "what": p.get("what", ""),
                                   "rx": [kw_re(x) for x in phrases], "pairs": pairs, "vendors": vendors,
                                   "keys": {norm(n) for n in names},
+                                  # Vendor names from the CPE ids, for "in the <vendor> <product>".
+                                  "prefixes": sorted({v for v, _ in pairs} | vendors, key=len, reverse=True),
                                   "base": norm(p["name"].split(" (")[0])})
 
     @classmethod
@@ -81,7 +88,7 @@ class Catalog:
                     return p
         exact = [p for p in self.products if any(v in vendors and pr in products for v, pr in p["pairs"])]
         if exact:
-            return next((p for p in exact if any(_is_subject(rx, t) for rx in p["rx"] for t in texts)), exact[0])
+            return next((p for p in exact if any(_is_subject(rx, t, p["prefixes"]) for rx in p["rx"] for t in texts)), exact[0])
         for p in self.products:
             if p["vendors"] & vendors:
                 return p
@@ -91,7 +98,7 @@ class Catalog:
             # normally stands: at the very start, or right after "in", "of", "for", "affecting".
             for text in texts:
                 for p in self.products:
-                    if any(_is_subject(rx, text) for rx in p["rx"]):
+                    if any(_is_subject(rx, text, p["prefixes"]) for rx in p["rx"]):
                         return p
         return None
 
