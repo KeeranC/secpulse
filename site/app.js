@@ -358,9 +358,11 @@ function majorRow(m) {
   return row({
     cls: 'major',
     lead: short(m.product), badge: verdictBadge(m) || exploited(m.kev, m.ransomware),
-    main: [m.headline || m.what || m.text, how(m.kind, m.path)].filter(Boolean).join(' · '),
+    // A new event says what happened (the press headline); an older one what the product is.
+    main: [(isNewEvent(m) && m.stories[0]?.title) || m.headline || m.what || m.text, how(m.kind, m.path)]
+      .filter(Boolean).join(' · '),
     score: m.cvss ?? null,
-    meta: m.kev && m.kev_date ? 'exploited ' + day(m.kev_date) : m.published ? day(m.published) : '',
+    meta: m.kev && m.kev_date ? 'exploited ' + day(m.kev_date) : (m.since || m.published) ? day(m.since || m.published) : '',
     body: [
       m.what && m.text && m.text !== m.what && h('p', null, m.text),
       facts(m.n_cves && plural(m.n_cves, 'CVE'), m.cvss && 'worst ' + cvssTxt(m.cvss),
@@ -372,11 +374,18 @@ function majorRow(m) {
     ],
   });
 }
+// m.since: when the leading CVE was published or listed as exploited (not press mentions).
+function isNewEvent(m) {
+  return m.since ? Date.now() - Date.parse(m.since) < 3 * 864e5 : false;
+}
 function renderBig() {
-  // Your own products are already above; emergencies are already above. Rank by press coverage.
+  // Your own products are already above; emergencies are already above. New events first
+  // (published or newly exploited in the last three days), so a fresh flaw the whole industry is
+  // writing about is not pushed down by older cases; then by press coverage and impact.
   const em = new Set(emergencies().big.map(m => m.product));
+  const rank = m => m.news * 5 + m.impact;
   const list = S.majors.filter(m => m.front && !m._core && !em.has(m.product) && !S.muted.has(m.product))
-    .sort((a, b) => (b.news * 5 + b.impact) - (a.news * 5 + a.impact));
+    .sort((a, b) => (isNewEvent(b) - isNewEvent(a)) || (rank(b) - rank(a)));
   $('#big').replaceChildren(...list.slice(0, PAGE.big).map(majorRow),
     h('button', { class: 'more', on: { click: () => setView('all', '#hV') } }, `All vulnerabilities (${S.majors.length}) →`));
 }

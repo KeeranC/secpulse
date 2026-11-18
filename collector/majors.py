@@ -103,6 +103,10 @@ def build_majors(cves: dict, stories: list[dict], sources_by_cve: dict, catalog,
             # Real dates, not "last mentioned": first publication and the latest KEV listing.
             "published": min((str(c["published"])[:10] for c in cs if c.get("published")), default=None),
             "kev_date": max((str(c["kev_date"])[:10] for c in cs if c.get("kev_date")), default=None),
+            # When the leading CVE became an event (published or listed as exploited); press
+            # mentions do not count. The portal puts events of the last three days first.
+            "since": max((str(d)[:10] for d in ((lead or {}).get("published"), (lead or {}).get("kev_date")) if d),
+                         default=None),
             "news": len(press),
             "stories": [{"title": s["title"], "url": s["url"], "source": s["sources"][0]["source"]}
                         for s in g["stories"][:2]],

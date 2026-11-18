@@ -73,6 +73,7 @@ def test_big_new_flaw_in_a_broad_product_reaches_the_front_page():
                desc="Vulnerability in the Oracle Java SE product of Oracle Java SE (component: Compiler).")
     out = build_majors({"CVE-2026-9": c}, [], {"CVE-2026-9": {"A", "B", "C"}}, CAT, NOW)
     assert out[0]["product"] == "OpenJDK / Java" and out[0]["broad"] and out[0]["front"]
+    assert out[0]["since"] == c["published"][:10]   # the portal ranks events this fresh first
 
 
 def test_catalog_text_match_for_headlines():
