@@ -139,7 +139,10 @@ def collect_cves(cves, items, kev, state, cfg, now, first_run):
     # Young, serious CVEs without version data yet: read the CVE record itself once, which
     # often lists affected and fixed versions days before NVD does.
     todo = [cid for cid, c in cves.items() if not c.get("ranges") and not c.get("cna_checked")
-            and age_days(c.get("published"), now) <= 14 and ((c.get("cvss") or 0) >= 7 or c.get("kev"))][:150]
+            and age_days(c.get("published"), now) <= 14 and ((c.get("cvss") or 0) >= 7 or c.get("kev"))]
+    # Widely deployed products first, then the newest: those are the ones you look at.
+    todo.sort(key=lambda cid: str(cves[cid].get("published") or ""), reverse=True)
+    todo = sorted(todo, key=lambda cid: not cves[cid].get("prod"))[:300]
     if todo:
         got = vulns.fetch_cvelist_ids(todo)
         for rec in got:
