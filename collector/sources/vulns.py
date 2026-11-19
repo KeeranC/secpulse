@@ -165,6 +165,40 @@ def fetch_nvd_ids(ids: list[str]) -> list[dict]:
 
 # ---------------------------------------------------------------- CVE.org (freshest data)
 
+def _cna_ranges(affected: list) -> list[dict]:
+    """Affected versions as the CVE record's author (often the vendor) gives them, in the same
+    shape as NVD's ranges. New CVEs carry these days before NVD adds its own."""
+    out = []
+    for a in affected or []:
+        cpe = next((c for c in a.get("cpes") or [] if str(c).count(":") > 4), "")
+        if cpe:
+            parts = cpe.split(":")
+            key = f"{parts[3]}:{parts[4]}"
+        else:
+            vendor, product = str(a.get("vendor") or "").strip(), str(a.get("product") or "").strip()
+            if not vendor or not product or "n/a" in (vendor.lower(), product.lower()):
+                continue
+            key = f"{vendor.lower().replace(' ', '_')}:{product.lower().replace(' ', '_')}"
+        for v in a.get("versions") or []:
+            if v.get("status") != "affected" or str(v.get("versionType", "")).lower() == "git":
+                continue
+            start = str(v.get("version") or "").strip()
+            r = {"cpe": key, "v": "*"}
+            if start and start not in ("0", "*", "n/a", "unspecified") and (v.get("lessThan") or v.get("lessThanOrEqual")):
+                r["si"] = start
+            if v.get("lessThan") and v["lessThan"] != "*":
+                r["ee"] = str(v["lessThan"])
+            elif v.get("lessThanOrEqual") and v["lessThanOrEqual"] != "*":
+                r["ei"] = str(v["lessThanOrEqual"])
+            elif start and start not in ("*", "n/a", "unspecified"):
+                r["v"] = start                     # one exact version
+            else:
+                continue
+            if r not in out:
+                out.append(r)
+    return out[:200]
+
+
 def parse_cvelist(rec: dict) -> dict | None:
     meta = rec.get("cveMetadata") or {}
     if meta.get("state") != "PUBLISHED":
@@ -187,6 +221,13 @@ def parse_cvelist(rec: dict) -> dict | None:
                     score, vector = float(s), (m.get(key) or {}).get("vectorString") or ""
     cwes = sorted({d["cweId"] for pt in cna.get("problemTypes", []) or [] for d in pt.get("descriptions", []) or []
                    if str(d.get("cweId", "")).startswith("CWE-")})
+    refs = [r for r in cna.get("references") or [] if str(r.get("url", "")).startswith("http")]
+    tags = lambda r: {str(t).lower() for t in r.get("tags") or []}
+    # The fix or vendor advisory: tagged as such, or a project's GitHub security advisory.
+    fix = next((r["url"] for r in refs if "patch" in tags(r)), None) \
+        or next((r["url"] for r in refs if "vendor-advisory" in tags(r)), None) \
+        or next((r["url"] for r in refs if "/security/advisories/GHSA-" in r["url"]), None)
+    ranges = _cna_ranges(cna.get("affected"))
     return {
         "vector": vector,
         "cwe": cwes,
@@ -199,8 +240,29 @@ def parse_cvelist(rec: dict) -> dict | None:
         "products": sorted(products),
         "cvss": score,
         "severity": _severity(score),
-        "refs": [r["url"] for r in (cna.get("references") or [])[:5] if str(r.get("url", "")).startswith("http")],
+        "refs": [r["url"] for r in refs[:5]],
+        "fix": fix,
+        "ranges": ranges,
+        "ranges_src": "cna" if ranges else None,
+        "src": "cna",
     }
+
+
+def fetch_cvelist_ids(ids: list[str]) -> list[dict]:
+    """Specific CVE records from the CVE.org list, e.g. to pick up affected versions."""
+    def url(cid):
+        _, year, num = cid.split("-")
+        return f"{CVELIST_PREFIX}main/cves/{year}/{int(num) // 1000}xxx/{cid}.json"
+
+    def one(cid):
+        try:
+            resp = get(url(cid), retries=1)
+            return parse_cvelist(resp.json()) if resp.status_code == 200 else None
+        except Exception:
+            return None
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        return [rec for rec in pool.map(one, ids) if rec and rec["id"]]
 
 
 def fetch_cvelist_new(limit=150) -> list[dict]:

@@ -137,6 +137,10 @@ _CWE = {
     "information disclosure": {200, 201, 203, 209, 532, 522, 312, 319, 538},
     "denial of service": {400, 770, 835, 674, 401, 404, 617},
     "CSRF": {352},
+    "request smuggling": {444},
+    "race condition": {362, 366, 367},
+    "prototype pollution": {1321},
+    "signature bypass": {345, 347},
     "XML external entity": {611},
     "open redirect": {601},
 }
@@ -152,6 +156,8 @@ _TEXT_KIND = [
     ("information disclosure", r"information disclosure|disclos(e|ure of) sensitive|sensitive information"),
     ("cross-site scripting", r"cross-site scripting|\bxss\b"),
     ("denial of service", r"denial of service|\bdos\b"),
+    ("request smuggling", r"request smuggling|desync"),
+    ("race condition", r"race condition"),
 ]
 _TEXT_KIND = [(k, re.compile(rx, re.I)) for k, rx in _TEXT_KIND]
 
@@ -172,6 +178,13 @@ def weakness_kind(cwes, text: str = "") -> str:
             if not kinds:
                 return kind
     return kinds[0] if kinds else ""
+
+
+def attack_condition(vector: str) -> str:
+    """CVSS 4.0 AT:P (attack requirements present) or 3.x AC:H (high complexity): the attack
+    only works in some setups or situations, which the description names."""
+    parts = dict(p.split(":", 1) for p in str(vector or "").split("/") if ":" in p)
+    return "only under certain conditions" if parts.get("AT") == "P" or parts.get("AC") == "H" else ""
 
 
 def attack_path(vector: str) -> str:

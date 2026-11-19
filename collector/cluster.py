@@ -132,7 +132,8 @@ def _story_facts(cve_ids: list[str], cves: dict) -> dict | None:
     c = max(known, key=lambda c: c.get("score") or 0)
     return {"cve": c["id"], "cvss": c.get("cvss"), "epss": c.get("epss"), "kev": bool(c.get("kev")),
             "ransomware": bool(c.get("kev_ransomware")), "poc": bool(c.get("poc")),
-            "kind": c.get("kind", ""), "path": c.get("path", ""), "fix": c.get("fix"), "due": c.get("kev_due")}
+            "kind": c.get("kind", ""), "path": c.get("path", ""), "cond": c.get("cond") or None,
+            "fix": c.get("fix"), "due": c.get("kev_due")}
 
 
 def build_stories(items: list[dict], kev_ids: set, catalog=None, cves: dict | None = None) -> list[dict]:

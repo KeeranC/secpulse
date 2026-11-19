@@ -40,7 +40,7 @@ def public_cves(cves: dict, now: datetime, retention: int, always: set) -> list[
             continue
         out.append({
             "prod": c.get("prod", ""), "area": c.get("area", ""), "kind": c.get("kind", ""),
-            "path": c.get("path", ""), "fix": c.get("fix"), "due": c.get("kev_due"), "news": c.get("news", 0),
+            "path": c.get("path", ""), "cond": c.get("cond") or None, "fix": c.get("fix"), "due": c.get("kev_due"), "news": c.get("news", 0),
             "fix_date": c.get("fix_date"), "poc_date": c.get("poc_date"),
             # Affected versions of the catalogue product, for the browser's version check.
             "ranges": _public_ranges(c.get("ranges"))[:60] or None,

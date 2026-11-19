@@ -23,7 +23,7 @@ import yaml
 import re
 
 from . import build, notify
-from .catalog import Catalog, attack_path, weakness_kind
+from .catalog import Catalog, attack_condition, attack_path, weakness_kind
 from .cluster import build_stories
 from .majors import build_majors
 from .versions import affected
@@ -102,11 +102,15 @@ def merge_cve(store: dict, rec: dict, now):
         old[key] = sorted(set(old.get(key) or []) | set(rec.get(key) or []))
     if rec.get("cvss") is not None:
         old["cvss"], old["severity"] = rec["cvss"], rec.get("severity")
+    cna = rec.get("src") == "cna"
     for key in ("vector", "cwe", "fix"):
-        if rec.get(key):
+        # NVD tags patch links; the record author's link only fills a gap.
+        if rec.get(key) and not (cna and key == "fix" and old.get("fix")):
             old[key] = rec[key]
-    if rec.get("ranges"):
+    # NVD's analysed ranges win over the record author's; the author's fill the days before.
+    if rec.get("ranges") and not (cna and old.get("ranges") and not old.get("ranges_src")):
         old["ranges"], old["ranges_partial"] = rec["ranges"], rec.get("ranges_partial", False)
+        old["ranges_src"] = rec.get("ranges_src")
     old["refs"] = list(dict.fromkeys((old.get("refs") or []) + (rec.get("refs") or [])))[:6]
     old["updated"] = max(str(old.get("updated") or ""), str(rec.get("updated") or "")) or None
 
@@ -131,6 +135,18 @@ def collect_cves(cves, items, kev, state, cfg, now, first_run):
     for rec in [*recs, *fresh, *ghsa]:
         if rec["id"] in cves or rec.get("rejected") or age_days(rec.get("published"), now) <= retention:
             merge_cve(cves, rec, now)
+
+    # Young, serious CVEs without version data yet: read the CVE record itself once, which
+    # often lists affected and fixed versions days before NVD does.
+    todo = [cid for cid, c in cves.items() if not c.get("ranges") and not c.get("cna_checked")
+            and age_days(c.get("published"), now) <= 14 and ((c.get("cvss") or 0) >= 7 or c.get("kev"))][:150]
+    if todo:
+        got = vulns.fetch_cvelist_ids(todo)
+        for rec in got:
+            merge_cve(cves, rec, now)
+        for cid in todo:
+            cves[cid]["cna_checked"] = True
+        log.info("CVE records checked for versions: %d (%d with versions)", len(todo), sum(1 for r in got if r.get("ranges")))
 
     # KEV entries added recently: make sure they exist even when the CVE itself is old.
     for cid, k in kev.items():
@@ -186,6 +202,7 @@ def enrich(cves, kev, state, catalog, cfg, now):
                 c["fix_date"] = c.get("published")
         c["kind"] = weakness_kind(c.get("cwe"), f"{c.get('title', '')} {c.get('desc', '')}")
         c["path"] = attack_path(c.get("vector"))
+        c["cond"] = attack_condition(c.get("vector"))
 
     stale = age_days(state.get("epss_ts"), now) > 0.25
     # EPSS only where it can change a decision; low-severity CVEs in unknown products are skipped.

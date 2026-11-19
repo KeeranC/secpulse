@@ -104,6 +104,7 @@ def build_majors(cves: dict, stories: list[dict], sources_by_cve: dict, catalog,
             "due": min((c["kev_due"] for c in cs if c.get("kev_due")), default=None),
             "kind": (lead or {}).get("kind") or (g["stories"][0].get("kind_hint", "") if g["stories"] else ""),
             "path": (lead or {}).get("path", ""),
+            "cond": (lead or {}).get("cond") or None,
             "fix": (lead or {}).get("fix"),
             "text": _clip((lead or {}).get("why") or (lead or {}).get("title") or (lead or {}).get("desc")
                           or (g["stories"][0]["title"] if g["stories"] else "")),

@@ -44,7 +44,10 @@ const short = name => String(name || '').replace(/ \((other|enterprise software|
 const plural = (n, w) => `${n} ${n === 1 ? w : w.endsWith('y') ? w.slice(0, -1) + 'ies' : w + 's'}`;
 const cap = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 /* "remote, no login, no user action" reads as "remote, no login": the last part is the norm. */
-const how = (kind, path) => [kind, String(path || '').replace(/, no user action$/, '')].filter(Boolean).join(', ');
+const how = (kind, path, cond) => [kind, String(path || '').replace(/, no user action$/, ''), cond].filter(Boolean).join(', ');
+/* "fixed in 8.2.36, 8.3.37" from the affected ranges, when no fix link is known. */
+const fixedVersions = x => [...new Set((x.ranges || []).map(r => r.ee).filter(Boolean))].slice(0, 6);
+const fixLine = x => safeUrl(x.fix) ? 'fix available' : fixedVersions(x).length ? 'fixed in ' + fixedVersions(x).join(', ') : 'no fix listed yet';
 const cveUrl = id => 'https://www.cve.org/CVERecord?id=' + encodeURIComponent(id);
 const cvssTxt = v => (v == null ? 'CVSS pending' : 'CVSS ' + Number(v).toFixed(1));
 const NOISE_TEASER = /^\s*submitted\s+by\s+\/u\//i;  // Reddit link posts carry no text
@@ -299,11 +302,11 @@ function renderEmergency() {
     box.append(row({
       cls: 'em mine', id: 'em-' + c.id,
       lead: c._core, badge: h('span', { class: 'v v-act' }, 'Act'),
-      main: [c.id, cap(how(c.kind, c.path))].filter(Boolean).join(' · '),
+      main: [c.id, cap(how(c.kind, c.path, c.cond))].filter(Boolean).join(' · '),
       score: c.cvss ?? null, meta: c.kev ? `exploited ${day(c.kev_date)}` : `published ${day(c.published)}`,
       body: [
         h('p', null, c.why || c.title || c.desc || ''),
-        facts(versionNote(c), safeUrl(c.fix) ? 'fix available' : 'no fix listed yet', c.poc && 'public exploit'),
+        facts(versionNote(c), fixLine(c), c.poc && 'public exploit'),
         timeline(c),
         h('p', { class: 'links' }, ext(cveUrl(c.id), 'CVE record ↗'), safeUrl(c.fix) && ' · ', safeUrl(c.fix) && ext(c.fix, 'Fix / advisory ↗')),
         handleButtons(c.id),
@@ -314,7 +317,7 @@ function renderEmergency() {
     box.append(row({
       cls: 'em other', id: 'em-' + majorKey(m),
       lead: short(m.product), badge: notYours(),
-      main: [m.headline, how(m.kind, m.path)].filter(Boolean).join(' · '),
+      main: [m.headline, how(m.kind, m.path, m.cond)].filter(Boolean).join(' · '),
       score: kevScore(m), meta: `exploited ${day(m.kev_date)}`,
       body: [
         facts(m.n_cves && plural(m.n_cves, 'CVE'), m.news && `covered by ${plural(m.news, 'outlet')}`, m.ransomware && 'used by ransomware'),
@@ -349,7 +352,7 @@ function emGroupRow(cs) {
         : `Critical CVEs of ${name}, none known to be exploited. Updating to the current release usually fixes all of them.`),
       h('ul', { class: 'emlist' }, cs.map(c => h('li', null,
         h('a', { href: '#' + c.id, title: 'Show in CVE radar' }, c.id),
-        h('span', null, ' ' + [cap(how(c.kind, c.path)), versionNote(c)].filter(Boolean).join(' · ')),
+        h('span', null, ' ' + [cap(how(c.kind, c.path, c.cond)), versionNote(c)].filter(Boolean).join(' · ')),
         h('span', { class: 'emr' }, c.kev ? exploited(true, c.ransomware) : null, scoreEl(c.cvss ?? null),
           h('span', { class: 'meta' }, c.kev ? `exploited ${day(c.kev_date)}` : day(c.published)))))),
       handleAllButtons(ids),
@@ -402,7 +405,7 @@ function renderBoard() {
       body: [
         ...open.slice(0, 8).map(x => h('div', { class: 'item' },
           h('a', { href: '#' + x.id }, x.id), ' ', exploited(x.kev, x.ransomware),
-          facts(cvssTxt(x.cvss), whenLine(x), cap(how(x.kind, x.path)), versionNote(x)),
+          facts(cvssTxt(x.cvss), whenLine(x), cap(how(x.kind, x.path, x.cond)), versionNote(x), !safeUrl(x.fix) && fixedVersions(x).length && fixLine(x)),
           h('p', null, x.why || x.title || x.desc || ''),
           timeline(x),
           safeUrl(x.fix) && h('p', { class: 'links' }, ext(x.fix, 'Fix / advisory ↗')),
@@ -427,7 +430,7 @@ function majorRow(m) {
     cls: 'major',
     lead: short(m.product), badge: verdictBadge(m) || exploited(m.kev, m.ransomware),
     // A new event says what happened (the press headline); an older one what the product is.
-    main: [(isNewEvent(m) && m.stories[0]?.title) || m.headline || m.what || m.text, how(m.kind, m.path)]
+    main: [(isNewEvent(m) && m.stories[0]?.title) || m.headline || m.what || m.text, how(m.kind, m.path, m.cond)]
       .filter(Boolean).join(' · '),
     score: m.cvss ?? null,
     meta: m.kev && m.kev_date ? 'exploited ' + day(m.kev_date) : (m.since || m.published) ? day(m.since || m.published) : '',
@@ -475,7 +478,7 @@ function storyRow(s) {
       s.summary && !NOISE_TEASER.test(s.summary) && h('p', null, s.summary),
       !s.summary && s.teaser && !NOISE_TEASER.test(s.teaser) && h('p', null, s.teaser),
       (s.prods || [])[0] && S.what[s.prods[0]] && facts(`${short(s.prods[0])}: ${S.what[s.prods[0]]}`),
-      (f.cve || s.vkind) && facts(cap(how(s.vkind || f.kind, f.path)), f.cve && cvssTxt(f.cvss), f.poc && 'public exploit', safeUrl(f.fix) && 'fix available'),
+      (f.cve || s.vkind) && facts(cap(how(s.vkind || f.kind, f.path, f.cond)), f.cve && cvssTxt(f.cvss), f.poc && 'public exploit', safeUrl(f.fix) && 'fix available'),
       linkList('CVEs:', cveLinks(s.cves.slice(0, 6))),
       s.n_sources > 1 && linkList('Also:', s.sources.slice(1, 6).map(x => ext(x.url, x.source))),
       facts(`first reported ${day(s.published || s.updated)}`),
@@ -549,7 +552,7 @@ function cveRow(c) {
   return row({
     cls: 'cve' + (c._aff === 'no' || isHandled(c.id) ? ' done' : ''), id: c.id,
     lead: c.id, badge: verdictBadge(c) || exploited(c.kev, c.ransomware),
-    main: [prod, (c.prod && S.what[c.prod]) || '', how(c.kind, c.path)].filter(Boolean).join(' · '),
+    main: [prod, (c.prod && S.what[c.prod]) || '', how(c.kind, c.path, c.cond)].filter(Boolean).join(' · '),
     score: c.cvss ?? null,
     meta: c.kev && c.kev_date ? 'exploited ' + day(c.kev_date) : day(c.published),
     body: [

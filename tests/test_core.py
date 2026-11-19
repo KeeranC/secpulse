@@ -3,7 +3,7 @@ from pathlib import Path
 
 import yaml
 
-from collector.catalog import Catalog, attack_path, weakness_kind
+from collector.catalog import Catalog, attack_condition, attack_path, weakness_kind
 from collector.cluster import build_stories, categorize
 from collector.majors import build_majors
 from collector.notify import alert_key, format_alert
@@ -381,6 +381,32 @@ def test_parse_cvelist_record():
     assert attack_path(rec["vector"]) == "remote, no login, needs user action"
     assert weakness_kind(rec["cwe"]) == "auth bypass"
     assert parse_cvelist({"cveMetadata": {"state": "REJECTED"}}) is None
+
+
+def test_cve_record_gives_versions_fix_and_condition():
+    # Shape of the PHP record CVE-2026-129289: fixed versions per branch, a GitHub advisory,
+    # CVSS 4.0 with AT:P (needs a non-default setup), CWE-444.
+    rec = parse_cvelist({
+        "cveMetadata": {"cveId": "CVE-2026-129289", "state": "PUBLISHED", "datePublished": "2026-11-19T14:44:30Z"},
+        "containers": {"cna": {
+            "descriptions": [{"lang": "en", "value": "PHP-FPM request smuggling ..."}],
+            "affected": [{"vendor": "PHP Group", "product": "PHP", "cpes": ["cpe:2.3:a:php:php:*:*:*:*:*:*:*:*"],
+                          "versions": [{"version": "8.2.0", "lessThan": "8.2.36", "status": "affected", "versionType": "semver"},
+                                       {"version": "8.3.0", "lessThan": "8.3.37", "status": "affected", "versionType": "semver"}],
+                          "defaultStatus": "unaffected"}],
+            "metrics": [{"cvssV4_0": {"baseScore": 9.2, "vectorString": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N"}}],
+            "problemTypes": [{"descriptions": [{"cweId": "CWE-444"}]}],
+            "references": [{"url": "https://github.com/php/php-src/security/advisories/GHSA-qc49-hpvq-g2w6"}],
+        }},
+    })
+    assert rec["ranges"] == [{"cpe": "php:php", "v": "*", "si": "8.2.0", "ee": "8.2.36"},
+                             {"cpe": "php:php", "v": "*", "si": "8.3.0", "ee": "8.3.37"}]
+    assert rec["fix"].endswith("GHSA-qc49-hpvq-g2w6")
+    assert attack_condition(rec["vector"]) == "only under certain conditions"
+    assert attack_condition("CVSS:3.1/AV:N/AC:L/PR:N/UI:N") == ""
+    assert weakness_kind(rec["cwe"]) == "request smuggling"
+    assert affected("8.3.30", rec["ranges"]) == "yes" and affected("8.3.37", rec["ranges"]) == "no"
+    assert CAT.ranges_for(CAT.find("PHP (language runtime)"), rec["ranges"]) == rec["ranges"]
 
 
 # ---------------------------------------------------------------- version check
