@@ -47,7 +47,7 @@ const cap = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 const how = (kind, path, cond) => [kind, String(path || '').replace(/, no user action$/, ''), cond].filter(Boolean).join(', ');
 /* "fixed in 8.2.36, 8.3.37" from the affected ranges, when no fix link is known. */
 const fixedVersions = x => [...new Set((x.ranges || []).map(r => r.ee).filter(Boolean))].slice(0, 6);
-const fixLine = x => safeUrl(x.fix) ? 'fix available' : fixedVersions(x).length ? 'fixed in ' + fixedVersions(x).join(', ') : 'no fix listed yet';
+const fixLine = x => fixedVersions(x).length ? 'fixed in ' + fixedVersions(x).join(', ') : safeUrl(x.fix) ? 'fix available' : 'no fix listed yet';
 const cveUrl = id => 'https://www.cve.org/CVERecord?id=' + encodeURIComponent(id);
 const cvssTxt = v => (v == null ? 'CVSS pending' : 'CVSS ' + Number(v).toFixed(1));
 const NOISE_TEASER = /^\s*submitted\s+by\s+\/u\//i;  // Reddit link posts carry no text
@@ -405,7 +405,7 @@ function renderBoard() {
       body: [
         ...open.slice(0, 8).map(x => h('div', { class: 'item' },
           h('a', { href: '#' + x.id }, x.id), ' ', exploited(x.kev, x.ransomware),
-          facts(cvssTxt(x.cvss), whenLine(x), cap(how(x.kind, x.path, x.cond)), versionNote(x), !safeUrl(x.fix) && fixedVersions(x).length && fixLine(x)),
+          facts(cvssTxt(x.cvss), whenLine(x), cap(how(x.kind, x.path, x.cond)), versionNote(x), fixedVersions(x).length && fixLine(x)),
           h('p', null, x.why || x.title || x.desc || ''),
           timeline(x),
           safeUrl(x.fix) && h('p', { class: 'links' }, ext(x.fix, 'Fix / advisory ↗')),
