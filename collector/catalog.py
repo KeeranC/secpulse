@@ -28,6 +28,7 @@ def is_catchall(name: str) -> bool:
     return "(other)" in name or "(enterprise software)" in name
 
 
+_AFFECTS_LEAD = re.compile(r"(?:^|\s)(?:affects|impacts)\s(?:the\s)?$")
 _SUBJECT_LEAD = re.compile(r"(?:^|(?:^|\s)(?:in|of|for|affecting|within)\s(?:the\s)?)$")
 
 
@@ -40,6 +41,10 @@ def _is_subject(rx: re.Pattern, text: str, vendors=()) -> bool:
                 before = before[: -len(v) - 1]
                 break
         if m.start() <= 12 or _SUBJECT_LEAD.search(before):
+            return True
+        # "This issue affects NGINX ...": only as the opening statement, not "note that this
+        # only affects MySQL" further down, where it names a precondition.
+        if m.start() <= 40 and _AFFECTS_LEAD.search(before):
             return True
     return False
 

@@ -141,6 +141,15 @@ section { margin-top: var(--s4); }
 .row.em.other .t { color: var(--dim); }
 
 /* timeline: published → fix → exploit → exploited → deadline */
+/* Emergency: the CVEs of one product, one compact line each. */
+.emlist { list-style: none; margin: var(--s2) 0 var(--s3); padding: 0; border-top: 1px solid var(--line); }
+.emlist li { display: flex; align-items: center; gap: var(--s2); padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--dim); }
+.emlist li > a { color: var(--brand); font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.emlist li > span:nth-child(2) { flex: 1; min-width: 0; }
+.emlist .emr { display: flex; align-items: center; gap: var(--s3); white-space: nowrap; }
+.emlist .emr .score { width: auto; }
+.emlist .emr .meta { width: auto; min-width: 84px; text-align: right; }
+@media (max-width: 640px) { .emlist li { flex-wrap: wrap; } .emlist .emr { width: 100%; justify-content: flex-end; } }
 .tl { list-style: none; margin: var(--s2) 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s1) 0; font-size: 13px; font-variant-numeric: tabular-nums; }
 .tl li { color: var(--dim); }
 .tl li + li::before { content: "→"; margin: 0 var(--s2); color: var(--faint); }

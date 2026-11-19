@@ -76,6 +76,14 @@ def test_big_new_flaw_in_a_broad_product_reaches_the_front_page():
     assert out[0]["since"] == c["published"][:10]   # the portal ranks events this fresh first
 
 
+def test_affects_counts_only_as_the_opening_statement():
+    c = cve(desc="This issue affects NGINX Plus or NGINX Open Source configurations that use HTTP/2.")
+    assert CAT.match_cve(c)["name"] == "nginx"
+    c = cve(desc="An unauthenticated SQL injection can occur on any site that uses craft.search to run "
+                 "a search. Note that this only affects MySQL/MariaDB.")
+    assert CAT.match_cve(c) is None
+
+
 def test_catalog_text_match_for_headlines():
     names = {p["name"] for p in CAT.match_text("SonicWall warns of SSLVPN attacks")}
     assert "SonicWall" in names
@@ -220,6 +228,19 @@ def test_majors_from_press_alone():
                      {"source": "C", "url": "https://example.org/c"}]}
     out = build_majors({}, [s], {}, CAT, NOW)
     assert len(out) == 1 and out[0]["product"] == "Linux kernel" and out[0]["news"] == 3 and not out[0]["kev"]
+
+
+def test_freshly_named_flaw_reaches_the_front_page_from_one_outlet():
+    s = {"id": "s2", "title": "Ruby2Shell: critical flaw in Ruby lets attackers run code", "url": "https://example.org/r",
+         "updated": iso(NOW - timedelta(hours=3)), "kind": "news", "category": "vulnerabilities", "cves": [],
+         "n_sources": 1, "prods": ["Ruby (language runtime)"], "importance": 7,
+         "sources": [{"source": "A", "url": "https://example.org/r"}]}
+    out = build_majors({}, [s], {}, CAT, NOW)
+    assert out[0]["product"] == "Ruby (language runtime)" and out[0]["named"] and out[0]["front"]
+    old = dict(s, updated=iso(NOW - timedelta(days=10)))          # an old name is not news
+    assert build_majors({}, [old], {}, CAT, NOW) == []
+    plain = dict(s, title="Ruby releases fixes for string flaws")  # one outlet, no name: wait for more
+    assert build_majors({}, [plain], {}, CAT, NOW) == []
 
 
 # ---------------------------------------------------------------- notifications

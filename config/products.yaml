@@ -65,6 +65,8 @@ products:
   - {name: Log4j, area: linux-oss-web, what: "Java logging library embedded in countless products", aliases: [Log4Shell], cpe: ["apache:log4j"]}
   - {name: Spring Framework, area: linux-oss-web, what: "The dominant Java application framework", aliases: [Spring Boot, Spring4Shell], cpe: ["vmware:spring_framework", "vmware:spring_boot", "pivotal_software:spring_framework"]}
   - {name: Node.js, area: linux-oss-web, what: "JavaScript server runtime", aliases: [], cpe: ["nodejs:node.js"]}
+  - {name: Ruby (language runtime), area: linux-oss-web, what: "The Ruby language runtime behind Rails sites and many tools (the runtime itself, not Ruby applications)", aliases: [Ruby, CRuby, Ruby interpreter, Ruby2Shell], cpe: ["ruby-lang:ruby"]}
+  - {name: Ruby on Rails, area: linux-oss-web, what: "The dominant Ruby web framework", aliases: [Rails, Rails2Shell], cpe: ["rubyonrails:rails", "rubyonrails:ruby_on_rails"]}
   - {name: Python (interpreter), area: linux-oss-web, what: "The Python interpreter", aliases: [CPython], cpe: ["python:python"]}
   - {name: OpenJDK / Java, area: linux-oss-web, what: "The Java runtime", aliases: [Java SE, OpenJDK, Java4Shell], cpe: ["oracle:jdk", "oracle:openjdk", "oracle:java_se"]}
   - {name: WordPress core, area: linux-oss-web, what: "The most widely used website CMS (core, not plugins)", aliases: [WordPress core], cpe: ["wordpress:wordpress"]}

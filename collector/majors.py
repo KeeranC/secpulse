@@ -15,6 +15,12 @@ from .score import event_age, impact_score
 from .util import age_days
 
 _HOT = re.compile(r"zero[- ]day|0-day|exploited|under attack|in the wild|actively", re.I)
+# Researchers and press coin a name (Log4Shell, Java4Shell, PHP2Shell) for the big ones only.
+_NAMED = re.compile(r"\b[a-z0-9]+[24]shell\b", re.I)
+
+
+def _named_new(s: dict, now: datetime) -> bool:
+    return bool(_NAMED.search(s["title"])) and age_days(s["updated"], now) <= 3
 
 
 def _key(c: dict) -> tuple[str, bool]:
@@ -53,8 +59,10 @@ def build_majors(cves: dict, stories: list[dict], sources_by_cve: dict, catalog,
         if age_days(s["updated"], now) > days or s["kind"] in ("advisory", "vendor"):
             continue
         keys = {by_cve[c] for c in s["cves"] if c in by_cve}
-        if not keys and s["category"] == "vulnerabilities" and s["n_sources"] >= 2 and s.get("prods"):
-            # Covered by several outlets, in a catalogue product, but no CVE we track yet.
+        if (not keys and s["category"] == "vulnerabilities" and s.get("prods")
+                and (s["n_sources"] >= 2 or _named_new(s, now))):
+            # Covered by several outlets (or a freshly named flaw), in a catalogue product, but
+            # no CVE we track yet.
             k = norm(s["prods"][0])
             groups.setdefault(k, {"product": s["prods"][0], "specific": True, "members": [], "stories": []})
             keys = {k}
@@ -106,7 +114,8 @@ def build_majors(cves: dict, stories: list[dict], sources_by_cve: dict, catalog,
             # When the leading CVE became an event (published or listed as exploited); press
             # mentions do not count. The portal puts events of the last three days first.
             "since": max((str(d)[:10] for d in ((lead or {}).get("published"), (lead or {}).get("kev_date")) if d),
-                         default=None),
+                         default=None) if lead else min((str(s["updated"])[:10] for s in g["stories"]), default=None),
+            "named": any(_named_new(s, now) for s in g["stories"]),
             "news": len(press),
             "stories": [{"title": s["title"], "url": s["url"], "source": s["sources"][0]["source"]}
                         for s in g["stories"][:2]],
@@ -115,7 +124,8 @@ def build_majors(cves: dict, stories: list[dict], sources_by_cve: dict, catalog,
     for e in out:
         # Fit for the front page: a widely deployed product the industry is actually talking
         # about. Exploited needs two outlets; unexploited needs three (patch days, big disclosures).
-        e["front"] = e["broad"] and (e["news"] >= 2 if e["kev"] else e["news"] >= 3)
+        # A freshly named flaw in such a product goes up at once, before the rest of the press.
+        e["front"] = e["broad"] and (e["news"] >= 2 if e["kev"] else (e["news"] >= 3 or e["named"]))
         # One plain sentence: what the product is, so an unfamiliar name is not a riddle.
         e["headline"] = e["what"] or _clip(e["text"], 120)
     # Two lists in one: what is being exploited, and what is critical but not exploited yet.

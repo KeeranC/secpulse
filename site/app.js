@@ -168,6 +168,12 @@ function setHandled(key, status, note) {
   store.set('handled', S.handled);
   render();
 }
+function setHandledAll(keys, status, note) {
+  const at = new Date().toISOString();
+  for (const k of keys) S.handled[k] = { s: status, note: note || '', at };
+  store.set('handled', S.handled);
+  render();
+}
 function toggleMute(name) {
   S.muted.has(name) ? S.muted.delete(name) : S.muted.add(name);
   store.set('muted', [...S.muted]);
@@ -213,6 +219,11 @@ function handleButtons(key) {
   return h('div', { class: 'handle' }, h('span', { class: 'hl' }, 'Mark as'),
     h('span', { class: 'group' }, Object.entries(HANDLED).map(([s, label]) => h('button', { type: 'button', on: { click: () => setHandled(key, s, note.value.trim()) } }, label))), note);
 }
+function handleAllButtons(keys) {
+  const note = h('input', { type: 'text', class: 'note', placeholder: 'Note (optional)', 'aria-label': 'Note' });
+  return h('div', { class: 'handle' }, h('span', { class: 'hl' }, `Mark all ${keys.length} as`),
+    h('span', { class: 'group' }, Object.entries(HANDLED).map(([s, label]) => h('button', { type: 'button', on: { click: () => setHandledAll(keys, s, note.value.trim()) } }, label))), note);
+}
 function muteButton(name) {
   return name && !S.core.some(c => c.names.has(name))
     ? h('button', { type: 'button', class: 'link quiet', on: { click: () => toggleMute(name) } }, S.muted.has(name) ? `Unmute ${short(name)}` : `Mute ${short(name)}`)
@@ -254,10 +265,19 @@ function renderEmergency() {
   box.hidden = !mine.length && !big.length;
   box.replaceChildren();
   if (box.hidden) return;
+  // One row per product of yours: a browser or patch-day release fixes dozens of critical CVEs
+  // at once, and one update handles them all. A product with a single CVE keeps the CVE row.
+  const byProduct = new Map();
+  for (const c of mine) byProduct.set(c._core, [...(byProduct.get(c._core) || []), c]);
+  const groups = [...byProduct.values()];
+  const rows = groups.length + big.length;
   box.append(h('div', { class: 'sh' }, icon(ICON_WARN), h('h2', null, 'Emergency'),
     h('span', { class: 'sub' }, 'critical, stays here until you mark it'),
-    h('span', { class: 'count' }, `${mine.length + big.length} open`)));
-  for (const c of mine) {
+    h('span', { class: 'count' }, rows === mine.length + big.length ? `${rows} open`
+      : `${rows} open · ${plural(mine.length + big.length, 'CVE')}`)));
+  for (const cs of groups) {
+    if (cs.length > 1) { box.append(emGroupRow(cs)); continue; }
+    const c = cs[0];
     box.append(row({
       cls: 'em mine', id: 'em-' + c.id,
       lead: c._core, badge: h('span', { class: 'v v-act' }, 'Act'),
@@ -288,6 +308,35 @@ function renderEmergency() {
       ],
     }));
   }
+}
+
+function emGroupRow(cs) {
+  // Exploited first, then the newest: what came in since you last looked is on top.
+  const when = c => (c.kev && c.kev_date) || c.published || '';
+  cs = [...cs].sort((a, b) => (b.kev - a.kev) || when(b).localeCompare(when(a)));
+  const name = cs[0]._core;
+  const kev = cs.filter(c => c.kev);
+  const newest = cs.map(c => (c.kev && c.kev_date) || c.published).filter(Boolean).sort().pop();
+  const ids = cs.map(c => c.id);
+  return row({
+    cls: 'em mine', id: 'emg-' + name,
+    lead: name, badge: h('span', { class: 'v v-act' }, 'Act'),
+    main: [plural(cs.length, 'critical CVE'), kev.length && `${kev.length} exploited`,
+      cs.some(c => safeUrl(c.fix)) && 'fixes listed'].filter(Boolean).join(' · '),
+    score: Math.max(...cs.map(c => c.cvss || 0)) || null,
+    meta: newest ? `latest ${day(newest)}` : '',
+    body: [
+      h('p', null, kev.length
+        ? `${plural(kev.length, 'CVE')} of ${name} ${kev.length === 1 ? 'is' : 'are'} exploited in the wild. Updating to the current release usually fixes all of them.`
+        : `Critical CVEs of ${name}, none known to be exploited. Updating to the current release usually fixes all of them.`),
+      h('ul', { class: 'emlist' }, cs.map(c => h('li', null,
+        h('a', { href: '#' + c.id, title: 'Show in CVE radar' }, c.id),
+        h('span', null, ' ' + [cap(how(c.kind, c.path)), versionNote(c)].filter(Boolean).join(' · ')),
+        h('span', { class: 'emr' }, c.kev ? exploited(true, c.ransomware) : null, scoreEl(c.cvss ?? null),
+          h('span', { class: 'meta' }, c.kev ? `exploited ${day(c.kev_date)}` : day(c.published)))))),
+      handleAllButtons(ids),
+    ],
+  });
 }
 
 /* ---------- A. your products ---------- */
