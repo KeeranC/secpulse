@@ -54,6 +54,7 @@ const AREAS = { microsoft: 'Microsoft', 'network-edge': 'Network / firewall / VP
 const VERDICT = {
   act: ['Act', 'Your product: exploited, public exploit or critical. Patch or mitigate now.'],
   check: ['Check', 'Your product: verify whether your version and setup are affected.'],
+  info: ['Info', 'Your product updates itself: for your information. Only an exploited flaw needs action.'],
 };
 const HANDLED = { patched: 'Patched', na: 'Not affected', accepted: 'Risk accepted' };
 const EMERGENCY_CVSS = 9.0;
@@ -63,7 +64,7 @@ const S = {
   stories: [], cves: [], majors: [], products: [], brief: {}, meta: {},
   view: store.get('view', 'brief'), q: '', cat: 'all', vf: 'all', more: {},
   read: new Set(store.get('read', [])),
-  stack: store.get('stack', null) || { core: store.get('watch', []), areas: [] },
+  stack: { info: [], ...(store.get('stack', null) || { core: store.get('watch', []), areas: [] }) },
   handled: store.get('handled', {}),          // key -> {s: status, note, at}
   muted: new Set(store.get('muted', [])),     // catalogue product names
   core: [], what: {}, focus: null,
@@ -103,11 +104,13 @@ const wordRx = w => new RegExp('(?<![a-z0-9])' + norm(w).replace(/[.*+?^${}()|[\
 
 function compileStack() {
   // "Fortinet FortiOS 7.4.3": a name that names a catalogue product matches it exactly; anything else is a keyword.
-  S.core = S.stack.core.map(t => t.trim()).filter(Boolean).map(entry => {
+  // Two lists: products you patch yourself, and products that update themselves ("info").
+  const lines = (list, mode) => (list || []).map(t => String(t).trim()).filter(Boolean).map(entry => [entry, mode]);
+  S.core = [...lines(S.stack.core, 'act'), ...lines(S.stack.info, 'info')].map(([entry, mode]) => {
     const [term, version] = splitVersion(entry);
     const rx = wordRx(term);
     const names = new Set(S.products.filter(p => rx.test(norm(p.name))).map(p => p.name));
-    return { term, version, rx, names };
+    return { term, version, rx, names, mode };
   });
   S.what = Object.fromEntries(S.products.map(p => [p.name, p.what]));
 }
@@ -122,6 +125,7 @@ function coreHit(prods, text, loose) {
 function tag(x, prods, text, loose, f) {
   const c = coreHit(prods, text, loose);
   x._core = c ? c.term : null;
+  x._info = !!c && c.mode === 'info';
   x._area = S.stack.areas.includes(x.area);
   x._aff = null; x._mine = null; x._fixed = null;
   if (c && c.version && x.ranges !== undefined) {
@@ -130,7 +134,9 @@ function tag(x, prods, text, loose, f) {
     x._fixed = x._aff === 'yes' ? fixedIn(c.version, x.ranges) : null;
   }
   f = f || {};
-  x._verdict = !x._core || x._aff === 'no' ? '' : (f.kev || f.poc || (f.cvss || 0) >= 9) ? 'act' : 'check';
+  x._verdict = !x._core || x._aff === 'no' ? ''
+    : x._info ? (f.kev ? 'act' : 'info')     // updates itself: only exploitation needs you
+    : (f.kev || f.poc || (f.cvss || 0) >= 9) ? 'act' : 'check';
 }
 function tagAll() {
   compileStack();
@@ -250,7 +256,8 @@ function kevScore(m) {
 }
 function emergencies() {
   // Your products: anything critical, unless your version is out of range or you handled it.
-  const mine = S.cves.filter(c => c._core && (c.cvss || 0) >= EMERGENCY_CVSS && recent(c, 30) && c._aff !== 'no' && !isHandled(c.id))
+  // Products that update themselves come here only when a flaw is exploited (restart or update now).
+  const mine = S.cves.filter(c => c._core && (!c._info || c.kev) && (c.cvss || 0) >= EMERGENCY_CVSS && recent(c, 30) && c._aff !== 'no' && !isHandled(c.id))
     .sort((a, b) => (b.kev - a.kev) || (b.cvss - a.cvss));
   // Everyone else: only big, critical and exploited cases the industry is talking about. The
   // exploited CVE itself must be critical: a group's other, unexploited CVEs do not count.
@@ -365,7 +372,8 @@ function renderBoard() {
     if (!open.length && !stories.length && !releases.length) { quiet.push(c.term + (extra ? ` (${extra})` : '')); continue; }
     const top = open[0];
     const nKev = open.filter(x => x.kev).length;
-    const verdict = open.some(x => x._verdict === 'act') ? 'act' : open.length || stories.length ? 'check' : '';
+    const verdict = open.some(x => x._verdict === 'act') ? 'act' : !(open.length || stories.length) ? ''
+      : c.mode === 'info' ? 'info' : 'check';
     const parts = [];
     if (open.length) {
       parts.push(plural(open.length, 'open CVE') + (nKev ? `, ${nKev} exploited` : ''));
@@ -375,7 +383,7 @@ function renderBoard() {
     if (releases[0]) parts.push(`${releases[0].security ? 'security release' : 'update'} ${day(releases[0].updated)}`);
     if (!open.length && stories.length) parts.push(plural(stories.length, 'story') + ': ' + stories[0].title);
     if (extra) parts.push(extra);
-    rows.push({ rank: verdict === 'act' ? 0 : verdict ? 1 : 2, el: row({
+    rows.push({ rank: { act: 0, check: 1, info: 2 }[verdict] ?? 3, el: row({
       cls: 'prod',
       lead: c.term + (c.version ? ' ' + c.version : ''), badge: verdict ? h('span', { class: 'v v-' + verdict, title: VERDICT[verdict][1] }, VERDICT[verdict][0]) : null,
       main: parts.join(' · '),
@@ -387,7 +395,7 @@ function renderBoard() {
           h('p', null, x.why || x.title || x.desc || ''),
           timeline(x),
           safeUrl(x.fix) && h('p', { class: 'links' }, ext(x.fix, 'Fix / advisory ↗')),
-          handleButtons(x.id))),
+          (c.mode !== 'info' || x.kev) && handleButtons(x.id))),
         open.length > 8 && h('p', { class: 'facts' }, `${open.length - 8} more in the CVE radar`),
         releases.length > 0 && h('div', { class: 'item' }, h('p', { class: 'facts' }, 'From the vendor'),
           releases.slice(0, 4).map(s => h('p', null, h('b', null, day(s.updated) + ' '), ext(s.url, s.title), s.security ? ' · security' : ''))),
@@ -603,12 +611,13 @@ function renderChrome() {
       h('div', null, h('h3', null, 'Legend'), dl('legend', [
         [badge('v-act', 'Act'), VERDICT.act[1]],
         [badge('v-check', 'Check'), VERDICT.check[1]],
+        [badge('v-info', 'Info'), VERDICT.info[1]],
         [badge('v-x', 'Exploited'), 'Used in real attacks, confirmed by CISA.'],
         [badge('v-none', 'Not yours'), 'Widely deployed product outside your stack. Check whether you run it anywhere.'],
         [h('span', { class: 'score s-crit' }, h('i', null, 'CVSS'), '9.8'), 'Severity score, 0 to 10. Red from 9.0, amber from 7.0.'],
       ])),
       h('div', null, h('h3', null, 'How it works'),
-        h('p', null, `Emergency lists your products with CVSS ≥ ${EMERGENCY_CVSS.toFixed(1)}, and widely deployed products that are critical and exploited.`),
+        h('p', null, `Emergency lists your products with CVSS ≥ ${EMERGENCY_CVSS.toFixed(1)} (products that update themselves only when exploited), and widely deployed products that are critical and exploited.`),
         h('p', null, 'Version checks use NVD’s affected ranges. New CVEs often have none for days; until then they count as affected.'),
         h('p', null, 'Your stack, handled items and mutes stay in this browser.')),
       h('div', { class: 'keys' }, h('h3', null, 'Keyboard'), dl('kb', [
@@ -646,13 +655,15 @@ function focusHash() {
 }
 
 /* ---------- stack dialog, export / import ---------- */
-function stackYaml(core, areas) {
+function stackYaml(core, areas, info = []) {
   const q = s => '"' + s.replace(/["\\]/g, '') + '"';
-  return ['core:', ...core.map(c => '  - ' + q(c)), 'areas:', ...areas.map(a => '  - ' + a)].join('\n') + '\n';
+  return ['core:', ...core.map(c => '  - ' + q(c)), ...info.map(c => `  - {name: ${q(c)}, mode: info}`),
+    'areas:', ...areas.map(a => '  - ' + a)].join('\n') + '\n';
 }
 function readDialog() {
   return {
     core: $('#coreTxt').value.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 100),
+    info: $('#infoTxt').value.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 100),
     areas: [...document.querySelectorAll('#areaBox input:checked')].map(i => i.value),
   };
 }
@@ -664,6 +675,7 @@ function renderMutedList() {
 }
 function openStack() {
   $('#coreTxt').value = S.stack.core.join('\n');
+  $('#infoTxt').value = (S.stack.info || []).join('\n');
   $('#areaBox').replaceChildren(...Object.entries(AREAS).map(([k, label]) =>
     h('label', null, h('input', { type: 'checkbox', value: k, checked: S.stack.areas.includes(k) }), ' ' + label)));
   $('#yamlOut').hidden = true;
@@ -682,7 +694,8 @@ async function importState(file) {
     const data = JSON.parse(await file.text());
     if (data?.secpulse !== 1) throw new Error('not a SecPulse file');
     if (data.stack && Array.isArray(data.stack.core)) {
-      S.stack = { core: data.stack.core.map(String).slice(0, 100), areas: (data.stack.areas || []).filter(a => AREAS[a]) };
+      S.stack = { core: data.stack.core.map(String).slice(0, 100), areas: (data.stack.areas || []).filter(a => AREAS[a]),
+        info: (Array.isArray(data.stack.info) ? data.stack.info : []).map(String).slice(0, 100) };
     }
     if (data.handled && typeof data.handled === 'object') {
       S.handled = Object.fromEntries(Object.entries(data.handled).filter(([, v]) => v && HANDLED[v.s])
@@ -727,9 +740,9 @@ function wire() {
   const dlg = $('#stackDlg');
   $('#stackBtn').addEventListener('click', openStack);
   $('#yamlBtn').addEventListener('click', async () => {
-    const { core, areas } = readDialog();
+    const { core, areas, info } = readDialog();
     const out = $('#yamlOut');
-    out.value = stackYaml(core, areas); out.hidden = false; out.select();
+    out.value = stackYaml(core, areas, info); out.hidden = false; out.select();
     try { await navigator.clipboard.writeText(out.value); $('#yamlBtn').textContent = 'Copied'; } catch { $('#yamlBtn').textContent = 'Select and copy below'; }
   });
   $('#exportBtn').addEventListener('click', exportState);

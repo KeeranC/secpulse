@@ -137,6 +137,16 @@ def test_empty_watchlist_matches_nothing():
 CORE, AREA = ("GitLab", "core"), ("Fortinet", "area")
 
 
+def test_info_mode_alerts_only_when_exploited():
+    wl = Watchlist({"core": [{"name": "Google Chrome / Chromium", "mode": "info"}, "GitLab"]}, CAT)
+    assert wl.is_info("Google Chrome / Chromium") and not wl.is_info("GitLab")
+    c = tagged(desc="Use after free in Google Chrome prior to 158 allowed a remote attacker ...", cvss=9.6)
+    assert wl.match(c) == ("Google Chrome / Chromium", "core")
+    info = ("Google Chrome / Chromium", "info")
+    assert alert_level(c, info, CFG, NOW) == 0                         # critical, not exploited: quiet
+    assert alert_level(dict(c, kev=True, kev_date=iso(NOW)), info, CFG, NOW) == 5
+
+
 def test_core_plus_exploited_is_top_level():
     c = cve(kev=True, kev_date=iso(NOW - timedelta(days=1)))
     assert alert_level(c, CORE, CFG, NOW) == 5

@@ -328,6 +328,8 @@ def run(args) -> int:
             mine = wl.version_of(match[0])
             if mine and affected(mine, c.get("ranges"), c.get("ranges_partial", False)) == "no":
                 match = None
+            elif wl.is_info(match[0]):
+                match = (match[0], "info")    # updates itself: only an exploited flaw alerts
         level = alert_level(c, match, cfg["alerts"], now)
         if level and alog.get(notify.alert_key(secret, c["id"]), 0) < level:
             alerts.append((c, level, match))
@@ -388,7 +390,7 @@ def run(args) -> int:
                 alog[notify.alert_key(secret, c["id"])] = level
 
     # ---- security releases of your products (from the private vendor feeds)
-    mine = {e.get("cat") or e["name"] for e in wl.entries}
+    mine = {n for e in wl.entries for n in (e.get("cat") or {e["name"]})}
     releases = [s for s in stories if s["kind"] == "vendor" and s.get("security")
                 and set(s["prods"]) & mine and age_days(s["updated"], now) <= 2
                 and notify.alert_key(secret, "rel:" + s["id"]) not in alog]

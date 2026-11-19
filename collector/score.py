@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from .catalog import Catalog, clean, kw_re, norm
+from .catalog import Catalog, clean, is_catchall, kw_re, norm
 from .versions import split_name_version
 from .util import age_days
 
@@ -16,6 +16,9 @@ class Watchlist:
            `products` and `keywords`.
     areas: catalogue areas (for example "network-edge"). Broad on purpose, so they only
            raise a phone alert when something in the area is actively exploited.
+
+    A core entry with `mode: info` is a product that updates itself (a browser, Windows):
+    you want to know, but only an exploited flaw needs you to do something.
     """
 
     def __init__(self, raw, catalog: Catalog | None = None):
@@ -27,15 +30,27 @@ class Watchlist:
         self.areas = {norm(a) for a in areas if a}
         self.entries = []
         for e in core:
+            info = False
+            if isinstance(e, dict) and not ({"vendor", "products", "keywords"} & e.keys()):
+                # {name: Google Chrome, mode: info}: the name works like a plain line.
+                info = str(e.get("mode") or "").strip().lower() == "info"
+                e = " ".join(str(x) for x in (e.get("name"), e.get("version")) if x)
             if isinstance(e, str):
                 if not e.strip():
                     continue
                 e, version = split_name_version(e)       # "GitLab 19.5.1"
                 hit = catalog.find(e) if catalog else None
+                if hit and not is_catchall(hit["name"]):
+                    self.entries.append({"name": hit["name"], "cat": {hit["name"]}, "version": version, "info": info})
+                    continue
+                # "Google Chrome" names the catalogue's "Google Chrome / Chromium": catalogue
+                # products whose name contains the words count too (the portal does the same).
+                rx = kw_re(e)
+                cats = {p["name"] for p in (catalog.products if catalog else []) if rx.search(norm(p["name"]))}
                 if hit:
-                    self.entries.append({"name": hit["name"], "cat": hit["name"], "version": version})
-                else:
-                    self.entries.append({"name": e, "any": norm(e), "keywords": [kw_re(e)], "version": version})
+                    cats.add(hit["name"])          # "Microsoft": the catch-all row and every Microsoft product
+                self.entries.append({"name": e, "any": norm(e), "keywords": [rx], "version": version,
+                                     "info": info, "cat": cats})
             elif isinstance(e, dict):
                 kws = list(e.get("keywords") or [])
                 vendor = norm(e.get("vendor")) or None
@@ -45,8 +60,12 @@ class Watchlist:
                 if not vendor and not kws:
                     kws = [name]
                 self.entries.append({"name": name, "vendor": vendor, "version": str(e.get("version") or "") or None,
+                                     "info": str(e.get("mode") or "").strip().lower() == "info",
                                      "products": [norm(p) for p in e.get("products") or []],
                                      "keywords": [kw_re(k) for k in kws]})
+
+    def is_info(self, name: str) -> bool:
+        return any(e.get("info") for e in self.entries if e["name"] == name)
 
     def version_of(self, name: str) -> str | None:
         return next((e.get("version") for e in self.entries if e["name"] == name), None)
@@ -64,7 +83,7 @@ class Watchlist:
         if not vendors:
             text += " " + clean(cve.get("desc", ""))
         for e in self.entries:
-            if e.get("cat") and cve.get("prod") == e["cat"]:
+            if e.get("cat") and cve.get("prod") in e["cat"]:
                 return e["name"], "core"
             if e.get("any") and (e["any"] in vendors or e["any"] in products):
                 return e["name"], "core"
@@ -131,7 +150,7 @@ def alert_level(cve: dict, match: tuple[str, str] | None, cfg: dict, now: dateti
     fresh = age_days(cve.get("published"), now) <= cfg["fresh_days"]
     kev_fresh = bool(cve.get("kev")) and age_days(cve.get("kev_date"), now) <= cfg["kev_fresh_days"]
 
-    if tier == "core" and cve.get("kev") and (kev_fresh or fresh):
+    if tier in ("core", "info") and cve.get("kev") and (kev_fresh or fresh):
         return 5
     if tier == "core" and fresh and (cvss >= cfg["watch_cvss"] or epss >= cfg["watch_epss"] or poc):
         return 4
@@ -146,11 +165,6 @@ def alert_level(cve: dict, match: tuple[str, str] | None, cfg: dict, now: dateti
     else:
         critical = cvss >= cfg.get("emergency_cvss", 9.0)   # unscored: NVD lags KEV
     if kev_fresh and critical:
-        return 2
-    if fresh and (epss >= cfg["any_epss"] or (cvss >= cfg["any_cvss_with_poc"] and poc)):
-        return 1
-    return 0
-    if kev_fresh:
         return 2
     if fresh and (epss >= cfg["any_epss"] or (cvss >= cfg["any_cvss_with_poc"] and poc)):
         return 1

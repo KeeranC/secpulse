@@ -89,6 +89,10 @@
     <p>What you run and are responsible for, one per line, optionally with your version. Only these get <span class="v v-act">Act</span> or <span class="v v-check">Check</span>; with a version, SecPulse also tells you whether you are affected.</p>
     <textarea id="coreTxt" rows="6" spellcheck="false" placeholder="Fortinet FortiOS 7.4.3&#10;VMware ESXi 8.0&#10;Microsoft Exchange"></textarea>
 
+    <h4>Products that update themselves</h4>
+    <p>Browsers, Windows, Office 365 and the like: you want to know, but the update arrives by itself. They get <span class="v v-info">Info</span> instead of Act or Check, and reach the Emergency block and your phone only when a flaw is exploited in the wild.</p>
+    <textarea id="infoTxt" rows="3" spellcheck="false" placeholder="Google Chrome&#10;Microsoft Windows"></textarea>
+
     <h4>Areas</h4>
     <p>Fields you follow. Used only as a filter under “Everything”; they never move anything up.</p>
     <div class="areas" id="areaBox"></div>
