@@ -137,6 +137,18 @@ def test_empty_watchlist_matches_nothing():
 CORE, AREA = ("GitLab", "core"), ("Fortinet", "area")
 
 
+def test_watchlist_names_numbers_and_several_versions():
+    wl = Watchlist({"core": ["Microsoft 365", "CyberArk 14.6", "CyberArk 15.2", "PHP", "Idira 14.6"]}, CAT)
+    by = {e["name"]: e for e in wl.entries}
+    assert by["Microsoft 365"]["version"] is None                     # a name, not version 365
+    assert wl.versions_of("CyberArk") == ["14.6", "15.2"]
+    # "PHP" names the catalogue product: a WordPress plugin written in PHP is not a match.
+    plugin = cve(desc="Gallery plugin for WordPress before 1.1 allows path traversal via upload.php")
+    assert wl.match(plugin) is None
+    assert wl.match(tagged(kev_product="PHP", vendors=["php"], products=["php"]))[0] == "PHP"
+    assert wl.match(cve(desc="Idira PAM 14 allows ..."))[0] == "Idira"   # not in the catalogue: keyword
+
+
 def test_info_mode_alerts_only_when_exploited():
     wl = Watchlist({"core": [{"name": "Google Chrome / Chromium", "mode": "info"}, "GitLab"]}, CAT)
     assert wl.is_info("Google Chrome / Chromium") and not wl.is_info("GitLab")
@@ -406,7 +418,7 @@ def test_split_name_version():
 def test_watchlist_keeps_the_version():
     wl = Watchlist({"core": ["GitLab 19.5.1", "Acme Vault"]}, CAT)
     assert wl.match(tagged(vendors=["gitlab"], products=["gitlab"])) == ("GitLab", "core")
-    assert wl.version_of("GitLab") == "19.5.1" and wl.version_of("Acme Vault") is None
+    assert wl.versions_of("GitLab") == ["19.5.1"] and wl.versions_of("Acme Vault") == []
 
 
 def test_nvd_ranges_and_product_filter():

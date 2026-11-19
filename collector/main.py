@@ -324,9 +324,9 @@ def run(args) -> int:
     for c in cves.values():
         match = wl.match(c)
         if match and match[1] == "core":
-            # Your version is outside the affected ranges: not your problem. "unknown" still alerts.
-            mine = wl.version_of(match[0])
-            if mine and affected(mine, c.get("ranges"), c.get("ranges_partial", False)) == "no":
+            # All your versions are outside the affected ranges: not your problem. "unknown" still alerts.
+            mine = wl.versions_of(match[0])
+            if mine and all(affected(v, c.get("ranges"), c.get("ranges_partial", False)) == "no" for v in mine):
                 match = None
             elif wl.is_info(match[0]):
                 match = (match[0], "info")    # updates itself: only an exploited flaw alerts

@@ -38,8 +38,12 @@ class Watchlist:
             if isinstance(e, str):
                 if not e.strip():
                     continue
-                e, version = split_name_version(e)       # "GitLab 19.5.1"
+                # "Microsoft 365" is a product name, not "Microsoft" version 365.
+                e, version = e.strip(), None
                 hit = catalog.find(e) if catalog else None
+                if not hit:
+                    e, version = split_name_version(e)   # "GitLab 19.5.1"
+                    hit = catalog.find(e) if catalog else None
                 if hit and not is_catchall(hit["name"]):
                     self.entries.append({"name": hit["name"], "cat": {hit["name"]}, "version": version, "info": info})
                     continue
@@ -47,6 +51,12 @@ class Watchlist:
                 # products whose name contains the words count too (the portal does the same).
                 rx = kw_re(e)
                 cats = {p["name"] for p in (catalog.products if catalog else []) if rx.search(norm(p["name"]))}
+                if cats and not hit:
+                    # Names catalogue products ("PHP", "Apache", "Linux"): match those products
+                    # only, as the portal does. As a free keyword, "PHP" would also catch every
+                    # WordPress plugin and "Linux" every advisory that mentions it in passing.
+                    self.entries.append({"name": e, "cat": cats, "version": version, "info": info})
+                    continue
                 if hit:
                     cats.add(hit["name"])          # "Microsoft": the catch-all row and every Microsoft product
                 self.entries.append({"name": e, "any": norm(e), "keywords": [rx], "version": version,
@@ -67,8 +77,11 @@ class Watchlist:
     def is_info(self, name: str) -> bool:
         return any(e.get("info") for e in self.entries if e["name"] == name)
 
-    def version_of(self, name: str) -> str | None:
-        return next((e.get("version") for e in self.entries if e["name"] == name), None)
+    def versions_of(self, name: str) -> list[str]:
+        """Every version you listed for this product ("CyberArk 14.6" and "CyberArk 15.2").
+        Empty when one of the lines has no version: then any version counts as yours."""
+        vs = [e.get("version") for e in self.entries if e["name"] == name]
+        return [] if not vs or None in vs else vs
 
     def __len__(self):
         return len(self.entries) + len(self.areas)

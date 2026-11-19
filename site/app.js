@@ -106,12 +106,20 @@ function compileStack() {
   // "Fortinet FortiOS 7.4.3": a name that names a catalogue product matches it exactly; anything else is a keyword.
   // Two lists: products you patch yourself, and products that update themselves ("info").
   const lines = (list, mode) => (list || []).map(t => String(t).trim()).filter(Boolean).map(entry => [entry, mode]);
-  S.core = [...lines(S.stack.core, 'act'), ...lines(S.stack.info, 'info')].map(([entry, mode]) => {
-    const [term, version] = splitVersion(entry);
+  const byTerm = new Map();
+  for (const [entry, mode] of [...lines(S.stack.core, 'act'), ...lines(S.stack.info, 'info')]) {
+    // "Microsoft 365" names a product; only split off a version when the whole line is not a name.
+    const whole = S.products.some(p => wordRx(entry).test(norm(p.name)));
+    const [term, version] = whole ? [entry, null] : splitVersion(entry);
+    // Several lines for one product ("CyberArk 14.6", "CyberArk 15.2"): one entry, all versions.
+    const key = norm(term) + '|' + mode;
+    const known = byTerm.get(key);
+    if (known) { known.versions = known.versions && version ? [...known.versions, version] : null; continue; }
     const rx = wordRx(term);
     const names = new Set(S.products.filter(p => rx.test(norm(p.name))).map(p => p.name));
-    return { term, version, rx, names, mode };
-  });
+    byTerm.set(key, { term, versions: version ? [version] : null, rx, names, mode });
+  }
+  S.core = [...byTerm.values()].map(c => ({ ...c, version: c.versions ? c.versions.join(' / ') : null }));
   S.what = Object.fromEntries(S.products.map(p => [p.name, p.what]));
 }
 function coreHit(prods, text, loose) {
@@ -128,10 +136,13 @@ function tag(x, prods, text, loose, f) {
   x._info = !!c && c.mode === 'info';
   x._area = S.stack.areas.includes(x.area);
   x._aff = null; x._mine = null; x._fixed = null;
-  if (c && c.version && x.ranges !== undefined) {
-    x._aff = affected(c.version, x.ranges, x.ranges_partial);
-    x._mine = c.version;
-    x._fixed = x._aff === 'yes' ? fixedIn(c.version, x.ranges) : null;
+  if (c && c.versions && x.ranges !== undefined) {
+    // Affected if any of your versions is; not affected only if none is.
+    const res = c.versions.map(v => [v, affected(v, x.ranges, x.ranges_partial)]);
+    const hit = res.filter(([, r]) => r === 'yes').map(([v]) => v);
+    x._aff = hit.length ? 'yes' : res.every(([, r]) => r === 'no') ? 'no' : 'unknown';
+    x._mine = hit.length ? hit.join(' / ') : c.version;
+    x._fixed = hit.length ? fixedIn(hit[0], x.ranges) : null;
   }
   f = f || {};
   x._verdict = !x._core || x._aff === 'no' ? ''
